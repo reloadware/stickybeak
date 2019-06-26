@@ -1,0 +1,55 @@
+version: '3.5'
+
+services:
+  stickybeak:
+    container_name: stickybeak
+    build: .
+    volumes:
+      - ".:/srv"
+      - "/srv/.venv"
+    command: "tail -f /dev/null"
+    restart: always
+    networks:
+      - network
+
+  flask_srv:
+    container_name: flask-srv
+    build: ./tests/flask_srv
+    volumes:
+      - "./tests/flask_srv/flesh:/srv"
+      - "/srv/.venv"
+      - "./stickybeak:/srv/.venv/lib/python3.7/site-packages/stickybeak"
+    command: "pipenv run flask run --host=0.0.0.0 --port=5000"
+    restart: always
+    networks:
+      - network
+
+  django_srv:
+    container_name: django-srv
+    build: ./tests/django_srv
+    volumes:
+      - "./tests/django_srv/flesh:/srv"
+      - "/srv/.venv"
+      - "./stickybeak:/srv/.venv/lib/python3.7/site-packages/stickybeak"
+    command: >
+        bash -c "pipenv run python manage.py migrate &&
+                 pipenv run python manage.py runserver 0.0.0.0:8000"
+    restart: always
+    networks:
+      - network
+  django-srv-rsync:
+    container_name: django-srv-rsync
+    image: axiom/rsync-server
+    volumes:
+      - "./tests/django_srv/flesh:/data"
+    environment:
+      - USERNAME=user
+      - PASSWORD=password
+      - ALLOW=stickybeak
+    networks:
+      - network
+
+networks:
+  network:
+
+#rsync -av --password-file=password.txt rsync://user@django-srv-rsync:873/volume ./

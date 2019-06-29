@@ -1,5 +1,6 @@
 """Purpose of this file is to run code in clear environment, without any unnecessary imports etc."""
 
+
 def execute(__code) -> bytearray:
     """Function where the injected code will be executed.
        Helps to avoid local variable conflicts."""
@@ -11,7 +12,7 @@ def execute(__code) -> bytearray:
     else:
         __results: dict = dict(locals())
 
-    del __results['__code']
+    #del __results['__code']
 
     import pickle as pickle
     import types as types

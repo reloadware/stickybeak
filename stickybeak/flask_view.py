@@ -1,18 +1,25 @@
 from flask import Blueprint, request
+from flask.views import MethodView
+from flask import Response
 
-from . import sandbox
+from stickybeak import sandbox
 
 
-inject = Blueprint('inject', 'inject')
+class StickybeakAPI(MethodView):
+    def get(self):
+        return Response("{}", status=200)
+
+    def post(self):
+        data = request.json
+
+        code = data['code']
+
+        result = sandbox.execute(code)
+        response = Response(result, status=200)
+
+        return response
 
 
-@inject.route('/inject/', methods=['POST'])
-def inject_view():
-    data = request.json
+def setup(app):
+    app.add_url_rule('/stickybeak/', view_func=StickybeakAPI.as_view('stickybeak'))
 
-    code = data['code']
-
-    result = sandbox.execute(code)
-    response = result
-
-    return response

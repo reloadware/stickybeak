@@ -1,7 +1,7 @@
 from flask import Flask
 
-from stickybeak.flask_view import inject
+from stickybeak.flask_view import setup
 
 app = Flask(__name__)
 
-app.register_blueprint(inject)
+setup(app)

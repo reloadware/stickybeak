@@ -1,10 +1,7 @@
 import pytest
-from stickybeak.injector import Injector
 
 
-@pytest.mark.parametrize("injector",
-                         [Injector(address='http://flask-srv:5000'),
-                          Injector(address='http://django-srv:8000')])
+@pytest.mark.usefixtures("injector")
 class TestInjectors:
 
     def test_exception(self, injector):
@@ -43,13 +40,6 @@ class TestInjectors:
 @pytest.mark.usefixtures("django_injector")
 class TestDjango:
     def test_function(self):
-        # import django
-
-        import os
-        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_srv.settings')
-        import django
-        django.setup()
-
         def fun():
             from app.models import Currency
             objects = Currency.objects.all()

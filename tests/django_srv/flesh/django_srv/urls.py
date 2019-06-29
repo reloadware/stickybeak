@@ -15,9 +15,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from stickybeak.django_view import inject
+from stickybeak.django_view import stickybeak_url
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    inject,
+    stickybeak_url,
 ]

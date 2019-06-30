@@ -2,13 +2,13 @@ import json
 from pathlib import Path
 
 import pytest
-from stickybeak.injector import DjangoInjector
+from stickybeak.injector import DjangoInjector, FlaskInjector
 from stickybeak.handle_requests import inject, get_source
 
 from requests import Response
 
 
-@pytest.fixture(params=[
+@pytest.fixture(params=['http://flask-srv:5000',
                         'http://django-srv:8000',
                         'http://local-mock'])
 def injector(request, mocker):
@@ -22,7 +22,7 @@ def injector(request, mocker):
 
         def mock_get(endpoint: str) -> Response:
             response = Response()
-            response._content = json.dumps(get_source(Path('django_srv/flesh')))
+            response._content = json.dumps(get_source(Path('/django_srv/flesh')))
             response.status_code = 200
             return response
 
@@ -34,7 +34,11 @@ def injector(request, mocker):
 
         return DjangoInjector(address=request.param, django_settings_module='django_srv.settings')
 
-    return DjangoInjector(address=request.param, django_settings_module='django_srv.settings')
+    if request.param == 'http://django-srv:8000':
+        return DjangoInjector(address=request.param, django_settings_module='django_srv.settings')
+
+    if request.param == 'http://flask-srv:5000':
+        return FlaskInjector(address=request.param)
 
 
 @pytest.fixture(scope="class")

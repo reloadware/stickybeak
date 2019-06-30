@@ -17,6 +17,7 @@ mypy = "*"
 pytest-mypy = "*"
 django-stubs = "*"
 djangorestframework-stubs = "*"
+pbr = "*"
 
 [packages]
 

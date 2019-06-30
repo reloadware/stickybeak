@@ -51,10 +51,10 @@ class TestDjango:
             currency.save()
 
             objects = Currency.objects.all()  # noqa
-            object = Currency.objects.all()[0]  # noqa
+            obj = Currency.objects.all()[0]  # noqa
 
         ret: Dict[str, object] = self.injector.run_fun(fun)
-        assert 'object' in ret
+        assert 'obj' in ret
         assert 'objects' in ret
 
     def test_accessing_fields(self):
@@ -65,10 +65,10 @@ class TestDjango:
             currency.name = "test_currency"
             currency.endpoint = "test_endpoint"
             currency.save()
-            object = Currency.objects.all()[0]  # noqa
+            obj = Currency.objects.all()[0]  # noqa
 
         ret: Dict[str, object] = self.injector.run_fun(fun)
-        object = ret['object']
+        obj = ret['obj']
 
-        assert object.name == "test_currency"
-        assert object.endpoint == "test_endpoint"
+        assert obj.name == "test_currency"
+        assert obj.endpoint == "test_endpoint"

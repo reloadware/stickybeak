@@ -152,3 +152,28 @@ class DjangoInjector(Injector):
             raise ret['__exception']  # type: ignore
 
         return ret
+
+
+class FlaskInjector(Injector):
+    def run_code(self, code: str) -> Dict[str, object]:
+        # we have to unload all the django modules so django accepts the new configuration
+        # make a module copy so we can iterate over it and delete modules from the original one
+        modules_before: List[str] = list(sys.modules.keys())[:]
+
+        sys.path.append(str(self.sources_dir.absolute()))
+
+        content: bytes = self.execute_remote_code(code)
+        ret: Dict[str, object] = pickle.loads(content)
+
+        sys.path.remove(str(self.sources_dir.absolute()))
+
+        modules_after: List[str] = list(sys.modules.keys())[:]
+        diff: List[str] = list(set(modules_after) - set(modules_before))
+        for m in diff:
+            sys.modules.pop(m)
+
+        # handle exceptions
+        if '__exception' in ret:
+            raise ret['__exception']  # type: ignore
+
+        return ret

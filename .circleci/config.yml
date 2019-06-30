@@ -24,13 +24,18 @@ jobs:
     <<: *defaults
     steps:
       - checkout
+      - setup_remote_docker
       - *restore_cache
-      - *install_packages
+      - run:
+          name: Start docker compose
+          command: |
+            docker-compose build
+            docker-compose up -d
       - run:
           name: Run tests
           command: |
             mkdir test-results
-            pipenv run pytest --junitxml=./test-results/summary.xml | tee ./test-results/pytest.txt
+            docker exec stickybeak pipenv run pytest
       - run:
           name: Run tests
           command: |

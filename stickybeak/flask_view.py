@@ -1,26 +1,23 @@
+import json
+from pathlib import Path
 from typing import Dict
 
+import flask
 from flask import request, Flask
 from flask.views import MethodView
 from flask import Response
 
-from stickybeak import sandbox
-from handle_requests import inject, get_source
+from stickybeak.handle_requests import inject, get_source
 
 
 class StickybeakAPI(MethodView):
     def get(self) -> Response:
-        return Response("{}", status=200)
+        project_dir: Path = Path(flask.current_app.root_path)  # type: ignore
+        return Response(json.dumps(get_source(project_dir)), status=200)
 
     def post(self) -> Response:
         data: Dict[str, str] = request.json
-
-        code: str = data['code']
-
-        result: bytes = sandbox.execute(code)
-        response = Response(result, status=200)
-
-        return response
+        return Response(inject(data), status=200)
 
 
 def setup(app: Flask) -> None:

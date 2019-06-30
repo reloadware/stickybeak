@@ -1,6 +1,6 @@
 import inspect
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Dict
 import requests
 import json
 import pickle
@@ -8,25 +8,25 @@ import textwrap
 import os
 import sys
 import django
-
+from abc import ABC
 
 from urllib.parse import urljoin, urlparse
 
 
-class Injector:
+class Injector(ABC):
     """Provides interface for code injection."""
 
-    def __init__(self, address: str, django_settings: str, endpoint: str='stickybeak/',
-                 sources_dir: Path = '.remote_sources') -> None:
+    def __init__(self, address: str,
+                 endpoint: str = 'stickybeak/',
+                 sources_dir: Path = Path('.remote_sources')) -> None:
         """
         :param address: service address that's gonna be injected.
         :param endpoint:
         """
-        self.django_settings = django_settings
         self.address: str = address
         self.endpoint: str = urljoin(self.address, endpoint)
 
-        self.name = urlparse(self.address).netloc
+        self.name: str = urlparse(self.address).netloc
 
         self.sources_dir: Path = sources_dir / Path(self.name)
 
@@ -36,7 +36,7 @@ class Injector:
         response: requests.Response = requests.get(self.endpoint)
         response.raise_for_status()
 
-        sources: dict = json.loads(response.content)
+        sources: Dict[str, str] = json.loads(response.content)
 
         for path, source in sources.items():
             abs_path: Path = self.sources_dir / Path(path)
@@ -48,8 +48,8 @@ class Injector:
     def execute_remote_code(self, code: str) -> bytes:
         code = self._add_try_except(code)
 
-        headers: dict = {'Content-type': 'application/json'}
-        payload: dict = {'code': code}
+        headers: Dict[str, str] = {'Content-type': 'application/json'}
+        payload: Dict[str, str] = {'code': code}
         data: str = json.dumps(payload)
 
         response: requests.Response = requests.post(self.endpoint, data=data, headers=headers)
@@ -57,27 +57,19 @@ class Injector:
 
         return response.content
 
-    def run_code(self, code: str) -> dict:
+    def run_code(self, code: str) -> Dict[str, object]:
         """Execute code.
         Returns:
-            Dictionary containing all the local variables.
+            Dictionary containing all local variables.
         Raises:
             All exceptions from the code run remotely.
         Sample usage.
         >>> injector: Injector = Injector('http://testedservice.local')
         >>> injector.run_code('a = 1')
         """
+        raise NotImplementedError
 
-        content = self.execute_remote_code(code)
-        ret: dict = pickle.loads(content)
-
-        # handle exceptions
-        if '__exception' in ret:
-            raise ret['__exception']
-
-        return ret
-
-    def run_fun(self, fun: Callable) -> dict:
+    def run_fun(self, fun: Callable[[], None]) -> Dict[str, object]:
         code = inspect.getsource(fun)
 
         # remove indent
@@ -91,14 +83,25 @@ class Injector:
         ret = self.run_code(code)
         return ret
 
-    def decorator(self, fun: Callable) -> Callable:
+    def decorator(self, fun: Callable[[], None]) -> Callable[[], Dict[str, object]]:
         """
         Decorator
         :param fun: function to be decorated:
         :return decorated function:
         """
-        def wrapped() -> dict:
-            return self._run_decorated(fun)
+        def wrapped() -> Dict[str, object]:
+            code = inspect.getsource(fun)
+
+            # remove indent
+            code = textwrap.dedent(code)
+
+            # remove function header
+            code = ''.join(code.splitlines(True)[2:])
+
+            # remove indent that's left
+            code = textwrap.dedent(code)
+            ret = self.run_code(code)
+            return ret
 
         return wrapped
 
@@ -114,23 +117,16 @@ class Injector:
         ret = ''.join(code_lines)
         return ret
 
-    def _run_decorated(self, fun: Callable) -> dict:
-        code = inspect.getsource(fun)
-
-        # remove indent
-        code = textwrap.dedent(code)
-
-        # remove function header
-        code = ''.join(code.splitlines(True)[2:])
-
-        # remove indent that's left
-        code = textwrap.dedent(code)
-        ret = self.run_code(code)
-        return ret
-
 
 class DjangoInjector(Injector):
-    def run_code(self, code: str):
+    def __init__(self, address: str,
+                 django_settings_module: str,
+                 endpoint: str = 'stickybeak/',
+                 sources_dir: Path = Path('.remote_sources')) -> None:
+        super().__init__(address=address, endpoint=endpoint, sources_dir=sources_dir)
+        self.django_settings_module = django_settings_module
+
+    def run_code(self, code: str) -> Dict[str, object]:
         # we have to unload all the django modules so django accepts the new configuration
         # make a module copy so we can iterate over it and delete modules from the original one
         modules = dict(sys.modules)
@@ -141,15 +137,15 @@ class DjangoInjector(Injector):
 
         sys.path.append(str(self.sources_dir.absolute()))
 
-        os.environ['DJANGO_SETTINGS_MODULE'] = self.django_settings
+        os.environ['DJANGO_SETTINGS_MODULE'] = self.django_settings_module
         django.setup()
         content: bytes = self.execute_remote_code(code)
-        ret: dict = pickle.loads(content)
+        ret: Dict[str, object] = pickle.loads(content)
 
         sys.path.remove(str(self.sources_dir.absolute()))
 
         # handle exceptions
         if '__exception' in ret:
-            raise ret['__exception']
+            raise ret['__exception']  # type: ignore
 
         return ret

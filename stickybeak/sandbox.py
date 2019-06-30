@@ -1,22 +1,23 @@
 """Purpose of this file is to run code in clear environment, without any unnecessary imports etc."""
+from typing import Dict
 
 
-def execute(__code) -> bytearray:
+def execute(__code: str) -> bytes:
     """Function where the injected code will be executed.
        Helps to avoid local variable conflicts."""
 
+    __results: Dict[str, object]
     try:
         exec(__code)
     except SyntaxError as exc:
-        __results: dict = {'__exception': exc}
+        __results = {'__exception': exc}
     else:
-        __results: dict = dict(locals())
-
-    #del __results['__code']
+        __results = dict(locals())
 
     import pickle as pickle
     import types as types
-    cleared_results: dict = {}
+    cleared_results: Dict[str, object] = {}
+
     for key, value in __results.items():
         if isinstance(value, types.ModuleType):
             continue
@@ -27,6 +28,6 @@ def execute(__code) -> bytearray:
 
         cleared_results[key] = value
 
-    ret: bytearray = pickle.dumps(cleared_results)
+    ret: bytes = pickle.dumps(cleared_results)
 
     return ret

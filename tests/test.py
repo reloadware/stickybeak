@@ -12,16 +12,16 @@ class TestInjectors:
             injector.run_code('1===1')
 
     def test_simple_code(self, injector):
-        ret = injector.run_code('a = 123')
+        ret: dict = injector.run_code('a = 123')
         assert ret['a'] == 123
 
     def test_function(self, injector):
         def fun():
             a = 5
             b = 3
-            c = a + b
+            c = a + b  # noqa
 
-        ret = injector.run_fun(fun)
+        ret: dict = injector.run_fun(fun)
         assert ret['a'] == 5
         assert ret['b'] == 3
         assert ret['c'] == 8
@@ -29,9 +29,9 @@ class TestInjectors:
     def test_context_manager(self, injector):
         @injector.decorator
         def fun():
-            a = 1
-            b = 4
-        ret = fun()
+            a = 1  # noqa
+            b = 4  # noqa
+        ret: dict = fun()
 
         assert ret['a'] == 1
         assert ret['b'] == 4
@@ -42,8 +42,9 @@ class TestDjango:
     def test_function(self):
         def fun():
             from app.models import Currency
-            objects = Currency.objects.all()
-            object = Currency.objects.all()[0]
+            objects = Currency.objects.all()  # noqa
+            object = Currency.objects.all()[0]  # noqa
 
-        ret = self.injector.run_fun(fun)
-        a = 1
+        ret: dict = self.injector.run_fun(fun)
+        assert 'object' in ret
+        assert 'objects' in ret

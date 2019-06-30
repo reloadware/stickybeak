@@ -1,4 +1,6 @@
-from flask import Blueprint, request
+from typing import Dict
+
+from flask import request, Flask
 from flask.views import MethodView
 from flask import Response
 
@@ -6,20 +8,19 @@ from stickybeak import sandbox
 
 
 class StickybeakAPI(MethodView):
-    def get(self):
+    def get(self) -> Response:
         return Response("{}", status=200)
 
-    def post(self):
-        data = request.json
+    def post(self) -> Response:
+        data: Dict[str, str] = request.json
 
-        code = data['code']
+        code: str = data['code']
 
-        result = sandbox.execute(code)
+        result: bytes = sandbox.execute(code)
         response = Response(result, status=200)
 
         return response
 
 
-def setup(app):
+def setup(app: Flask) -> None:
     app.add_url_rule('/stickybeak/', view_func=StickybeakAPI.as_view('stickybeak'))
-

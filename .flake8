@@ -9,4 +9,5 @@ exclude =
     build,
     dist,
     .venv,
+    .remote_sources,
 max-line-length = 120

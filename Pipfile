@@ -12,9 +12,13 @@ ipython = "*"
 twine = "*"
 django = "*"
 rstcheck = "*"
+djangorestframework = "*"
+mypy = "*"
+pytest-mypy = "*"
+django-stubs = "*"
+djangorestframework-stubs = "*"
 
 [packages]
-djangorestframework = "*"
 
 [requires]
 python_version = "3.7"

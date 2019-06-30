@@ -1,6 +1,6 @@
 import inspect
 from pathlib import Path
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 import requests
 import json
 import pickle
@@ -129,11 +129,7 @@ class DjangoInjector(Injector):
     def run_code(self, code: str) -> Dict[str, object]:
         # we have to unload all the django modules so django accepts the new configuration
         # make a module copy so we can iterate over it and delete modules from the original one
-        modules = dict(sys.modules)
-        for n in modules.keys():
-            # delete all django modules
-            if 'django' in n:
-                sys.modules.pop(n)
+        modules_before: List[str] = list(sys.modules.keys())[:]
 
         sys.path.append(str(self.sources_dir.absolute()))
 
@@ -143,6 +139,13 @@ class DjangoInjector(Injector):
         ret: Dict[str, object] = pickle.loads(content)
 
         sys.path.remove(str(self.sources_dir.absolute()))
+
+        modules_after: List[str] = list(sys.modules.keys())[:]
+
+        diff: List[str] = list(set(modules_after) - set(modules_before))
+
+        for m in diff:
+            sys.modules.pop(m)
 
         # handle exceptions
         if '__exception' in ret:

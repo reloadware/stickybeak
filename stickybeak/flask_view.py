@@ -5,6 +5,7 @@ from flask.views import MethodView
 from flask import Response
 
 from stickybeak import sandbox
+from handle_requests import inject, get_source
 
 
 class StickybeakAPI(MethodView):

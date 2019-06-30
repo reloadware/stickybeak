@@ -1,3 +1,5 @@
+from typing import Dict
+
 import pytest
 
 
@@ -39,12 +41,34 @@ class TestInjectors:
 
 @pytest.mark.usefixtures("django_injector")
 class TestDjango:
-    def test_function(self):
+    def test_importing_model(self):
         def fun():
             from app.models import Currency
+            Currency.objects.all().delete()
+            currency = Currency()
+            currency.name = "test_currency"
+            currency.endpoint = "test_endpoint"
+            currency.save()
+
             objects = Currency.objects.all()  # noqa
             object = Currency.objects.all()[0]  # noqa
 
-        ret: dict = self.injector.run_fun(fun)
+        ret: Dict[str, object] = self.injector.run_fun(fun)
         assert 'object' in ret
         assert 'objects' in ret
+
+    def test_accessing_fields(self):
+        def fun():
+            from app.models import Currency
+            Currency.objects.all().delete()
+            currency = Currency()
+            currency.name = "test_currency"
+            currency.endpoint = "test_endpoint"
+            currency.save()
+            object = Currency.objects.all()[0]  # noqa
+
+        ret: Dict[str, object] = self.injector.run_fun(fun)
+        object = ret['object']
+
+        assert object.name == "test_currency"
+        assert object.endpoint == "test_endpoint"

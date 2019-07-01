@@ -1,5 +1,5 @@
 .venv
-bin
+bin/host
 .dockerignore
 Dockerfile
 README.md

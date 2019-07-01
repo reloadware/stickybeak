@@ -7,7 +7,6 @@ import pickle
 import textwrap
 import os
 import sys
-import django
 from abc import ABC
 
 from urllib.parse import urljoin, urlparse
@@ -37,6 +36,9 @@ class Injector(ABC):
         response.raise_for_status()
 
         sources: Dict[str, str] = json.loads(response.content)
+
+        if sources == {}:
+            raise RuntimeError("Couldn't find any source files (*.py).")
 
         for path, source in sources.items():
             abs_path: Path = self.sources_dir / Path(path)
@@ -129,17 +131,24 @@ class DjangoInjector(Injector):
     def run_code(self, code: str) -> Dict[str, object]:
         # we have to unload all the django modules so django accepts the new configuration
         # make a module copy so we can iterate over it and delete modules from the original one
-        modules_before: List[str] = list(sys.modules.keys())[:]
 
+        # unload django
+        modules = list(sys.modules.keys())[:]
+        for m in modules:
+            if 'django' in m:
+                sys.modules.pop(m)
+
+        modules_before: List[str] = list(sys.modules.keys())[:]
         sys.path.append(str(self.sources_dir.absolute()))
 
         os.environ['DJANGO_SETTINGS_MODULE'] = self.django_settings_module
+
+        import django
         django.setup()
         content: bytes = self.execute_remote_code(code)
         ret: Dict[str, object] = pickle.loads(content)
 
         sys.path.remove(str(self.sources_dir.absolute()))
-
         modules_after: List[str] = list(sys.modules.keys())[:]
 
         diff: List[str] = list(set(modules_after) - set(modules_before))

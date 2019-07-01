@@ -14,6 +14,9 @@ def inject(data: Dict[str, str]) -> bytes:
 
 
 def get_source(project_dir: Path) -> Dict[str, str]:
+    if not project_dir.exists():
+        raise RuntimeError(f"{str(project_dir)} directory doesn't exist on the remote server.")
+
     source_code: Dict[str, str] = {}
 
     for p in glob.iglob(str(project_dir) + '/**/*.py', recursive=True):

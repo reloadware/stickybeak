@@ -14,10 +14,11 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from stickybeak.django_view import stickybeak_url
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('health-check/', include('health_check.urls')),
     stickybeak_url,
 ]

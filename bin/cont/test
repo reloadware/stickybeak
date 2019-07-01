@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+cd /srv
+pipenv run pytest --junitxml=./test-results/summary.xml | tee ./test-results/pytest.txt

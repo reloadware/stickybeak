@@ -18,6 +18,7 @@ pytest-mypy = "*"
 django-stubs = "*"
 djangorestframework-stubs = "*"
 pbr = "*"
+django-health-check = "*"
 
 [packages]
 

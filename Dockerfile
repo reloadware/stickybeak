@@ -26,4 +26,3 @@ USER stickybeak
 # PipEnv
 ENV PIPENV_VENV_IN_PROJECT true
 RUN pipenv install -d
-#RUN pipenv run python setup.py clean

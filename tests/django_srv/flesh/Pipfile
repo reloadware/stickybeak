@@ -13,6 +13,7 @@ furl = "*"
 django = "*"
 django-braces = "*"
 djangorestframework = "*"
+django-health-check = "*"
 
 [requires]
 python_version = "3.7"

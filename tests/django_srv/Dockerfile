@@ -10,18 +10,18 @@ ENV SHELL /bin/bash
 RUN apt update && apt install net-tools -y && pip3 install pipenv
 
 # Setup motd
-COPY docker/motd/motd /etc/motd
-COPY docker/motd/.bashrc /root/.bashrc
+COPY tests/django_srv/docker/motd/motd /etc/motd
+COPY tests/django_srv/docker/motd/.bashrc /root/.bashrc
 
 # uid is set to 1000 for development purposes
 RUN useradd -ms /bin/bash -u 1000 django_srv
-COPY docker/motd/.bashrc /home/django_srv/.bashrc
+COPY tests/django_srv/docker/motd/.bashrc /home/django_srv/.bashrc
 
 RUN chown -R django_srv:django_srv /srv
 WORKDIR /srv
 
 # Setup data provider
-COPY --chown=django_srv:django_srv flesh .
+COPY --chown=django_srv:django_srv tests/django_srv/flesh .
 
 USER django_srv
 
@@ -29,6 +29,6 @@ USER django_srv
 ENV PIPENV_VENV_IN_PROJECT true
 RUN pipenv install
 
-EXPOSE 5000
+COPY --chown=django_srv:django_srv stickybeak .venv/lib/python3.7/site-packages/stickybeak
 
-#USER root
+EXPOSE 8000

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+cd /srv
+pipenv run mypy . | tee ./test-results/mypy.txt

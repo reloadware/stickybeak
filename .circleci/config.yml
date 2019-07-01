@@ -32,18 +32,22 @@ jobs:
             docker-compose build
             docker-compose up -d
       - run:
-          name: Run tests
-          command: |
-            mkdir test-results
-            docker exec stickybeak pipenv run pytest
+          name: Wait for services
+          command: docker exec stickybeak ./bin/cont/wait_for_services.py
       - run:
           name: Run tests
           command: |
-            pipenv run mypy . | tee ./test-results/mypy.txt
+            docker exec stickybeak mkdir test-results
+            docker exec stickybeak ./bin/cont/test
+      - run:
+          name: Run mypy
+          command: docker exec stickybeak ./bin/cont/mypy
       - run:
           name: Run rstcheck
-          command: |
-            pipenv run rstcheck README.rst| tee ./test-results/rstcheck.txt
+          command: docker exec stickybeak ./bin/cont/rstcheck
+      - run:
+          name: Run copy results
+          command: docker cp stickybeak:/srv/test-results test-results
 
       - store_artifacts:
           path: test-results

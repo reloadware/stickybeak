@@ -38,7 +38,7 @@ jobs:
           name: Run tests
           command: |
             docker exec stickybeak mkdir test-results
-            docker exec stickybeak ./bin/cont/test
+            docker\ exec stickybeak ./bin/cont/test
       - run:
           name: Run mypy
           command: docker exec stickybeak ./bin/cont/mypy

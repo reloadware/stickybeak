@@ -58,19 +58,24 @@ Testing app (local server)
 ##########################
 .. code-block:: python
 
-    def test_exception(self):
-        injector = Injector(address='http://django-srv:8000')
+    from stickybeak.injector import DjangoInjector, FlaskInjector
+
+    def test_exception():
+        injector = DjangoInjector(address='http://django-srv:8000',
+                                  django_settings_module='django_srv.settings')
 
         with pytest.raises(ZeroDivisionError):
             injector.run_code('1/0')
 
-    def test_simple_code(self):
-        injector = Injector(address='http://django-srv:8000')
+    def test_simple_code():
+        injector = DjangoInjector(address='http://django-srv:8000',
+                                  django_settings_module='django_srv.settings')
         ret = injector.run_code('a = 123')
         assert ret['a'] == 123
 
-    def test_function(self):
-        injector = Injector(address='http://django-srv:8000')
+    def test_function():
+        injector = DjangoInjector(address='http://django-srv:8000',
+                                  django_settings_module='django_srv.settings')
 
         def fun():
             # this code executes on the remote server
@@ -83,8 +88,9 @@ Testing app (local server)
         assert ret['b'] == 3
         assert ret['c'] == 8
 
-    def test_using_decorators(self):
-        injector = Injector(address='http://django-srv:8000')
+    def test_using_decorators():
+        injector = DjangoInjector(address='http://django-srv:8000',
+                                  django_settings_module='django_srv.settings')
 
         @injector.decorator
         def fun():
@@ -97,8 +103,9 @@ Testing app (local server)
         assert ret['a'] == 1
         assert ret['b'] == 4
 
-    def test_django_feature(self):
-        injector = Injector(address='http://django-srv:8000')
+    def test_django_feature():
+        injector = DjangoInjector(address='http://django-srv:8000',
+                                  django_settings_module='django_srv.settings')
 
         @injector.decorator
         def fun():

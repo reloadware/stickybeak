@@ -3,11 +3,9 @@ from pathlib import Path
 from typing import Dict
 
 import flask
-from flask import request, Flask
+from flask import Flask, Response, request
 from flask.views import MethodView
-from flask import Response
-
-from stickybeak.handle_requests import inject, get_source
+from stickybeak.handle_requests import get_source, inject
 
 
 class StickybeakAPI(MethodView):

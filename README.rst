@@ -118,7 +118,7 @@ Testing app (local server)
 
         ret = fun()
 
-        # using and magic the object is available locally as if we were running code on the remote server
+        # using a little bit of python magic the object is available locally as if we were running code on the remote server
         assert ret['object'].model_field == "test_value"
         # it is also available for debugger so it is possible to lookup all values and even run some class functions on it
 

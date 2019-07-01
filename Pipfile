@@ -20,6 +20,8 @@ djangorestframework-stubs = "*"
 pbr = "*"
 django-health-check = "*"
 pipenv-to-requirements = "*"
+flake8-import-order = "*"
+isort = "*"
 
 [packages]
 djangorestframework = "*"

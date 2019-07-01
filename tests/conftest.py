@@ -2,10 +2,10 @@ import json
 from pathlib import Path
 
 import pytest
-from stickybeak.injector import DjangoInjector, FlaskInjector
-from stickybeak.handle_requests import inject, get_source
-
 from requests import Response
+
+from stickybeak.handle_requests import get_source, inject
+from stickybeak.injector import DjangoInjector, FlaskInjector
 
 
 @pytest.fixture(params=['http://flask-srv:5000',

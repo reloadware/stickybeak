@@ -1,15 +1,15 @@
 import inspect
+import json
+import os
+import pickle
+import sys
+import textwrap
+from abc import ABC
 from pathlib import Path
 from typing import Callable, Dict, List
-import requests
-import json
-import pickle
-import textwrap
-import os
-import sys
-from abc import ABC
-
 from urllib.parse import urljoin, urlparse
+
+import requests
 
 
 class Injector(ABC):

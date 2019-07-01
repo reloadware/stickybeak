@@ -1,7 +1,8 @@
 #!/srv/.venv/bin/python
 
-import requests
 import time
+
+import requests
 
 timeout = 25
 

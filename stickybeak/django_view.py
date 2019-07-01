@@ -3,11 +3,12 @@ from pathlib import Path
 from typing import Dict
 
 from django import urls
-from django.http import HttpResponse, HttpRequest
-from rest_framework.views import APIView
-from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-from stickybeak.handle_requests import inject, get_source
+from django.http import HttpRequest, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.views import APIView
+
+from stickybeak.handle_requests import get_source, inject
 
 
 class InjectView(APIView):

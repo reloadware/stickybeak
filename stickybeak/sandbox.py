@@ -14,6 +14,8 @@ def execute(__code: str) -> bytes:
     else:
         __results = dict(locals())
 
+    __results.pop('__code')
+
     import pickle as pickle
     import types as types
     cleared_results: Dict[str, object] = {}

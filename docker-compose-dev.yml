@@ -9,6 +9,8 @@ services:
       - "./tests/django_srv/flesh:/srv"
       - "/srv/.venv"
       - "./stickybeak:/srv/.venv/lib/python3.7/site-packages/stickybeak"
+    ports:
+      - "8000:8000"
 
   stickybeak:
     extends:

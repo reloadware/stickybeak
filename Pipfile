@@ -19,6 +19,7 @@ django-stubs = "*"
 djangorestframework-stubs = "*"
 pbr = "*"
 django-health-check = "*"
+pipenv-to-requirements = "*"
 
 [packages]
 

@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "1422c58c426fa92d59c6b47fe92cb2505f14de6dc15b02f860fda3002e05ed8b"
+            "sha256": "06c16e0be34bd96f1f54e57ad5335a392ef6c13239ac8e7db99f6127d8c10f30"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -104,11 +104,11 @@
         },
         "django": {
             "hashes": [
-                "sha256:753d30d3eb078064d2ddadfea65083c9848074a7f93d7b4dc7fa6b1380d278f5",
-                "sha256:7cb67e8b934fab23b6daed7144da52e8a25a47eba7f360ca43d2b448506b01ad"
+                "sha256:4d23f61b26892bac785f07401bc38cbf8fa4cec993f400e9cd9ddf28fd51c0ea",
+                "sha256:6e974d4b57e3b29e4882b244d40171d6a75202ab8d2402b8e8adbd182e25cf0c"
             ],
             "index": "pypi",
-            "version": "==2.2.2"
+            "version": "==2.2.3"
         },
         "django-health-check": {
             "hashes": [
@@ -275,6 +275,22 @@
                 "sha256:9649af414d74d4df115d5d718f82acb59c9d418196b7b4290ed47a12ce62df56"
             ],
             "version": "==0.7.5"
+        },
+        "pipenv": {
+            "hashes": [
+                "sha256:56ad5f5cb48f1e58878e14525a6e3129d4306049cb76d2f6a3e95df0d5fc6330",
+                "sha256:7df8e33a2387de6f537836f48ac6fcd94eda6ed9ba3d5e3fd52e35b5bc7ff49e",
+                "sha256:a673e606e8452185e9817a987572b55360f4d28b50831ef3b42ac3cab3fee846"
+            ],
+            "version": "==2018.11.26"
+        },
+        "pipenv-to-requirements": {
+            "hashes": [
+                "sha256:04dc5b1fedfea18858efe3f28d62ed70ac0cd04c34bc32a8c3531384d11be460",
+                "sha256:44bfefa3f6ded62e3bdcc5a6bb4de7a821b2658f821c1126f6abc3bffecb2c1e"
+            ],
+            "index": "pypi",
+            "version": "==0.7.1"
         },
         "pkginfo": {
             "hashes": [
@@ -481,6 +497,20 @@
                 "sha256:dbe59173209418ae49d485b87d1681aefa36252ee85884c31346debd19463232"
             ],
             "version": "==1.25.3"
+        },
+        "virtualenv": {
+            "hashes": [
+                "sha256:b7335cddd9260a3dd214b73a2521ffc09647bde3e9457fcca31dc3be3999d04a",
+                "sha256:d28ca64c0f3f125f59cabf13e0a150e1c68e5eea60983cc4395d88c584495783"
+            ],
+            "version": "==16.6.1"
+        },
+        "virtualenv-clone": {
+            "hashes": [
+                "sha256:532f789a5c88adf339506e3ca03326f20ee82fd08ee5586b44dc859b5b4468c5",
+                "sha256:c88ae171a11b087ea2513f260cdac9232461d8e9369bcd1dc143fc399d220557"
+            ],
+            "version": "==0.5.3"
         },
         "wcwidth": {
             "hashes": [

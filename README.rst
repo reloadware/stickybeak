@@ -47,13 +47,15 @@ Django app (remote server)
 .. code-block:: python
 
     from django.contrib import admin
-    from django.urls import path
-    from stickybeak.django_view import inject
+    from django.urls import include, path
+
+    from stickybeak.django_view import stickybeak_url
 
     urlpatterns = [
         path('admin/', admin.site.urls),
-        inject,
+        stickybeak_url,
     ]
+
 
 
 Flask app (remote server)
@@ -61,10 +63,10 @@ Flask app (remote server)
 .. code-block:: python
 
     from flask import Flask
-    from stickybeak.flask_view import inject
+    from stickybeak.flask_view import setup
 
     app = Flask(__name__)
-    app.register_blueprint(inject)
+    setup(app)
 
 
 Testing app (local server)

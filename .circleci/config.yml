@@ -1,9 +1,12 @@
 defaults: &defaults
-  working_directory: ~/repo
+  working_directory: /srv
   docker:
     - image: circleci/python:3.7
       environment:
         PIPENV_VENV_IN_PROJECT: true
+        DJANGO_SRV_HOSTNAME: localhost:8000
+        FLASK_SRV_HOST: localhost
+        FLASK_SRV_PORT: 5000
 
 install_packages: &install_packages
   run:
@@ -18,37 +21,43 @@ restore_cache: &restore_cache
     name: "Restore cache"
     key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
 
-version: 2
+version: 2.1
+orbs:
+  codecov: codecov/codecov@1.0.5
 jobs:
   test-lib:
     <<: *defaults
     steps:
-      - checkout
-      - setup_remote_docker
-      - *restore_cache
       - run:
-          name: Start docker compose
+          name: Init
+          command: sudo chown circleci:circleci /srv
+      - checkout
+      - *install_packages
+      - *restore_cache
+
+      - run:
+          name: Install and run django_srv
           command: |
-            docker-compose build
-            docker-compose up -d
+            ./tests/django_srv/bin/host/install
+            ./tests/django_srv/bin/host/start &
+      - run:
+          name: Install and run flask_srv
+          command: |
+            ./tests/flask_srv/bin/host/install
+            ./tests/flask_srv/bin/host/start &
       - run:
           name: Wait for services
-          command: docker exec stickybeak ./bin/cont/wait_for_services.py
-      # TODO: Propagate exit codes
+          command: ./bin/cont/wait_for_services.py
       - run:
           name: Run tests
-          command: docker exec stickybeak ./bin/cont/test
-#      - codecov/upload:
-#          file: ./test-results/pytest.txt
+          command: ./bin/cont/test
+      - codecov/upload
       - run:
           name: Run mypy
-          command: docker exec stickybeak ./bin/cont/mypy
+          command: ./bin/cont/mypy
       - run:
           name: Run rstcheck
-          command: docker exec stickybeak ./bin/cont/rstcheck
-      - run:
-          name: Run copy results
-          command: docker cp stickybeak:/srv/test-results test-results
+          command: ./bin/cont/rstcheck
 
       - store_artifacts:
           path: test-results

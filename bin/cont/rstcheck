@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 
+cd /srv
 mkdir -p test-results
 pipenv run rstcheck README.rst | tee ./test-results/rstcheck.txt

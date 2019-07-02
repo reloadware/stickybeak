@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+cd /srv/tests/flask_srv/
+pipenv run flask run --host="${FLASK_SRV_HOST}" --port="${FLASK_SRV_PORT}"

@@ -1,14 +1,16 @@
 #!/srv/.venv/bin/python
 
+import os
 import time
 
 import requests
 
-timeout = 25
+timeout: int = 25
 
 while True:
     try:
-        response = requests.get('http://django-srv:8000/health-check/')
+        django_srv_hostname: str = os.getenv("DJANGO_SRV_HOSTNAME")
+        response: requests.Response = requests.get(f'http://{django_srv_hostname}/health-check/')
         if response.status_code == 200:
             break
     except requests.exceptions.ConnectionError:

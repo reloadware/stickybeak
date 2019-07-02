@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+cd /srv/tests/django_srv/
+pipenv run python manage.py migrate
+pipenv run python manage.py runserver "${DJANGO_SRV_HOSTNAME}"

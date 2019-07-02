@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+cd /srv
 echo "[pypi]" >> ~/.pypirc
 echo "username=$PYPI_USERNAME" >> ~/.pypirc
 echo "password=$PYPI_PASSWORD" >> ~/.pypirc

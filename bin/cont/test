@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 
+cd /srv
 mkdir -p test-results
-pipenv run pytest --cov=stickybeak --junitxml=./test-results/summary.xml | tee ./test-results/pytest.txt
+pipenv run pytest --cov-config=.coveragerc --cov=stickybeak --junitxml=./test-results/summary.xml --cov-report=xml --cov-report=html

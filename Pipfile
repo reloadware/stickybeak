@@ -22,10 +22,12 @@ django-health-check = "*"
 pipenv-to-requirements = "*"
 flake8-import-order = "*"
 isort = "*"
+flask = "*"
 
 [packages]
 djangorestframework = "*"
 django = "*"
+flask = "*"
 
 [requires]
 python_version = "3.7"

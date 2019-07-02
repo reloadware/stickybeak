@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 mkdir -p test-results
-pipenv run pytest --junitxml=./test-results/summary.xml | tee ./test-results/pytest.txt
+pipenv run pytest --cov=stickybeak --junitxml=./test-results/summary.xml | tee ./test-results/pytest.txt

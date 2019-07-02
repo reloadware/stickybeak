@@ -3,6 +3,18 @@
 Stickybeak - Life changing E2E tests solution
 =============================================
 
+.. image:: https://badge.fury.io/py/stickybeak.svg
+    :target: https://pypi.org/project/stickybeak/
+
+.. image:: https://circleci.com/gh/dkrystki/stickybeak.svg?style=svg
+    :target: https://circleci.com/gh/dkrystki/stickybeak
+
+.. image:: https://img.shields.io/badge/python-3.6-blue.svg
+    :target: https://www.python.org/downloads/release/python-360/
+
+.. image:: https://img.shields.io/badge/python-3.7-blue.svg
+    :target: https://www.python.org/downloads/release/python-370/
+
 Stickybeak is an end to end test helper library that saves lots of testing endpoints and boilerplate code.
 Usually end to end testing is hard to debug when something goes wrong since modern microservice architecture can be quite convoluted.
 This library can flatten even the most complex application and help developers write tests that are easy to debug and reflect real life scenarios.
@@ -71,7 +83,7 @@ Testing app (local server)
     def test_simple_code():
         injector = DjangoInjector(address='http://django-srv:8000',
                                   django_settings_module='django_srv.settings')
-        ret = injector.run_code('a = 123')
+        ret: Dict[str, object] = injector.run_code('a = 123')
         assert ret['a'] == 123
 
     def test_function():
@@ -84,7 +96,7 @@ Testing app (local server)
             b = 3
             c = a + b
 
-        ret = injector.run_fun(fun)
+        ret: Dict[str, object] = injector.run_fun(fun)
         assert ret['a'] == 5
         assert ret['b'] == 3
         assert ret['c'] == 8
@@ -99,7 +111,7 @@ Testing app (local server)
             a = 1
             b = 4
 
-        ret = fun()
+        ret: Dict[str, object] = fun()
 
         assert ret['a'] == 1
         assert ret['b'] == 4
@@ -111,16 +123,22 @@ Testing app (local server)
         @injector.decorator
         def fun():
             # this code executes on the remote server
-            from app.models import DjangoModel
-            objects = DjangoModel.objects.all()
-            object = DjangoModel.objects.all()[0]
-            assert objects.count() == 2
+            from app.models import Currency
+            Currency.objects.all().delete()
+            currency = Currency()
+            currency.name = "test_currency"
+            currency.endpoint = "test_endpoint"
+            currency.save()
+            obj = Currency.objects.all()[0]  # noqa
 
-        ret = fun()
+        ret: Dict[str, object] = fun()
+        obj = ret['obj']
 
-        # using a little bit of python magic the object is available locally as if we were running code on the remote server
-        assert ret['object'].model_field == "test_value"
-        # it is also available for debugger so it is possible to lookup all values and even run some class functions on it
+        # with a little bit of python magic the object is available locally as if we were running code on the remote server
+        assert obj.name == "test_currency"
+        assert obj.endpoint == "test_endpoint"
+        # it is also available for debugger so it is possible to lookup all values and even run some class functions
+
 
 
 Development

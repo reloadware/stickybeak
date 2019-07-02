@@ -34,10 +34,12 @@ jobs:
       - run:
           name: Wait for services
           command: docker exec stickybeak ./bin/cont/wait_for_services.py
+      # TODO: Propagate exit codes
       - run:
           name: Run tests
-          command: |
-            docker exec stickybeak ./bin/cont/test
+          command: docker exec stickybeak ./bin/cont/test
+#      - codecov/upload:
+#          file: ./test-results/pytest.txt
       - run:
           name: Run mypy
           command: docker exec stickybeak ./bin/cont/mypy

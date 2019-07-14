@@ -1,4 +1,4 @@
-FROM python:3.7
+FROM python:3.7-slim-stretch
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LC_ALL C.UTF-8
@@ -7,29 +7,24 @@ ENV SHELL /bin/bash
 
 
 # Install common
-RUN apt update && apt install net-tools -y && pip3 install pipenv
+RUN pip3 install pipenv
+
+# uncomment aliases and colors
+RUN sed -i '9,14 s/# *//' /root/.bashrc
+RUN sed -i '16,30 s/# *//' /root/.bashrc
 
 # Setup motd
-COPY tests/flask_srv/docker/motd/motd /etc/motd
-COPY tests/flask_srv/docker/motd/.bashrc /root/.bashrc
+COPY docker/motd/motd /etc/motd
+RUN echo "echo -e \"`cat /etc/motd`\"" >> /root/.bashrc
 
-# uid is set to 1000 for development purposes
-RUN useradd -ms /bin/bash -u 1000 flask_srv
-COPY tests/flask_srv/docker/motd/.bashrc /home/flask_srv/.bashrc
-
-RUN chown -R flask_srv:flask_srv /srv
 WORKDIR /srv
 
 # Setup data provider
-COPY --chown=flask_srv:flask_srv tests/flask_srv/flesh .
+COPY tests/flask_srv .
 
-USER flask_srv
+RUN pipenv install --system
 
-# PipEnv
-ENV PIPENV_VENV_IN_PROJECT true
-RUN pipenv install
-
-COPY --chown=flask_srv:flask_srv stickybeak .venv/lib/python3.7/site-packages/stickybeak
+COPY stickybeak /usr/local/lib/python3.7/site-packages/stickybeak
 
 ENV FLASK_APP app.py
 ENV FLASK_ENV development

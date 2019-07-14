@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
 cd /srv/tests/django_srv/
-pipenv run python manage.py migrate
-pipenv run python manage.py runserver 0.0.0.0:8000
+python manage.py migrate
+python manage.py runserver 0.0.0.0:8000

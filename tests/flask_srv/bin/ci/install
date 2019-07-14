@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-cd /srv/test/flask_srv
+cd /srv/tests/flask_srv
 
 export PIPENV_VENV_IN_PROJECT=true
 pipenv install -d
+pipenv install -e ../../

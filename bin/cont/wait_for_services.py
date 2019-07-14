@@ -5,7 +5,7 @@ import time
 
 import requests
 
-timeout: int = 25
+timeout: int = 120
 
 while True:
     try:

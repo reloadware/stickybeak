@@ -38,13 +38,15 @@ jobs:
       - run:
           name: Install and run django_srv
           command: |
-            ./tests/django_srv/bin/host/install
-            ./tests/django_srv/bin/host/start &
+            ./tests/django_srv/bin/ci/install
+            ./tests/django_srv/bin/ci/start
+          background: true
       - run:
           name: Install and run flask_srv
           command: |
-            ./tests/flask_srv/bin/host/install
-            ./tests/flask_srv/bin/host/start &
+            ./tests/flask_srv/bin/ci/install
+            ./tests/flask_srv/bin/ci/start
+          background: true
       - run:
           name: Wait for services
           command: ./bin/cont/wait_for_services.py

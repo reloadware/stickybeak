@@ -11,9 +11,8 @@ services:
     networks:
       - network
     volumes:
-      - "./tests/django_srv/flesh:/srv"
-      - "/srv/.venv"
-      - "./stickybeak:/srv/.venv/lib/python3.7/site-packages/stickybeak"
+      - "./tests/django_srv:/srv"
+      - "./stickybeak:/usr/local/lib/python3.7/site-packages/stickybeak"
 
   stickybeak:
     container_name: stickybeak
@@ -24,7 +23,6 @@ services:
       - network
     volumes:
       - ".:/srv"
-      - "/srv/.venv"
 
   flask_srv:
     container_name: flask-srv
@@ -36,9 +34,8 @@ services:
     networks:
       - network
     volumes:
-      - "./tests/flask_srv/flesh:/srv"
-      - "/srv/.venv"
-      - "./stickybeak:/srv/.venv/lib/python3.7/site-packages/stickybeak"
+      - "./tests/flask_srv:/srv"
+      - "./stickybeak:/usr/local/lib/python3.7/site-packages/stickybeak"
 
 networks:
   network:

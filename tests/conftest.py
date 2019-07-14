@@ -22,7 +22,7 @@ def injector(request, mocker):
 
         def mock_get(endpoint: str) -> Response:
             response = Response()
-            response._content = json.dumps(get_source(Path('tests/django_srv/flesh')))
+            response._content = json.dumps(get_source(Path('tests/django_srv')))
             response.status_code = 200
             return response
 
@@ -33,7 +33,7 @@ def injector(request, mocker):
         get_mock.side_effect = mock_get
 
         return DjangoInjector(address=request.param,
-                              django_settings_module='tests.django_srv.flesh.django_srv.settings')
+                              django_settings_module='tests.django_srv.django_srv.settings')
 
     if request.param == 'http://django-srv:8000':
         return DjangoInjector(address=request.param, django_settings_module='django_srv.settings')

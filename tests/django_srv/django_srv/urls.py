@@ -19,7 +19,7 @@ from django.urls import include, path
 from stickybeak.django_view import stickybeak_url
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('health-check/', include('health_check.urls')),
+    path("admin/", admin.site.urls),
+    path("health-check/", include("health_check.urls")),
     stickybeak_url,
 ]

@@ -15,9 +15,12 @@ import requests
 class Injector(ABC):
     """Provides interface for code injection."""
 
-    def __init__(self, address: str,
-                 endpoint: str = 'stickybeak/',
-                 sources_dir: Path = Path('.remote_sources')) -> None:
+    def __init__(
+        self,
+        address: str,
+        endpoint: str = "stickybeak/",
+        sources_dir: Path = Path(".remote_sources"),
+    ) -> None:
         """
         :param address: service address that's gonna be injected.
         :param endpoint:
@@ -50,11 +53,13 @@ class Injector(ABC):
     def execute_remote_code(self, code: str) -> bytes:
         code = self._add_try_except(code)
 
-        headers: Dict[str, str] = {'Content-type': 'application/json'}
-        payload: Dict[str, str] = {'code': code}
+        headers: Dict[str, str] = {"Content-type": "application/json"}
+        payload: Dict[str, str] = {"code": code}
         data: str = json.dumps(payload)
 
-        response: requests.Response = requests.post(self.endpoint, data=data, headers=headers)
+        response: requests.Response = requests.post(
+            self.endpoint, data=data, headers=headers
+        )
         response.raise_for_status()
 
         return response.content
@@ -78,7 +83,7 @@ class Injector(ABC):
         code = textwrap.dedent(code)
 
         # remove function header
-        code = ''.join(code.splitlines(True)[1:])
+        code = "".join(code.splitlines(True)[1:])
 
         # remove indent that's left
         code = textwrap.dedent(code)
@@ -91,6 +96,7 @@ class Injector(ABC):
         :param fun: function to be decorated:
         :return decorated function:
         """
+
         def wrapped() -> Dict[str, object]:
             code = inspect.getsource(fun)
 
@@ -98,7 +104,7 @@ class Injector(ABC):
             code = textwrap.dedent(code)
 
             # remove function header
-            code = ''.join(code.splitlines(True)[2:])
+            code = "".join(code.splitlines(True)[2:])
 
             # remove indent that's left
             code = textwrap.dedent(code)
@@ -109,22 +115,27 @@ class Injector(ABC):
 
     @staticmethod
     def _add_try_except(code: str) -> str:
-        ret = textwrap.indent(code, '    ')  # use tabs instead of spaces, easier to debug
+        ret = textwrap.indent(
+            code, "    "
+        )  # use tabs instead of spaces, easier to debug
         code_lines = ret.splitlines(True)
-        code_lines.insert(0, 'try:\n')
+        code_lines.insert(0, "try:\n")
         except_block = """\nexcept Exception as __exc:\n    __exception = __exc\n"""
 
         code_lines.append(except_block)
 
-        ret = ''.join(code_lines)
+        ret = "".join(code_lines)
         return ret
 
 
 class DjangoInjector(Injector):
-    def __init__(self, address: str,
-                 django_settings_module: str,
-                 endpoint: str = 'stickybeak/',
-                 sources_dir: Path = Path('.remote_sources')) -> None:
+    def __init__(
+        self,
+        address: str,
+        django_settings_module: str,
+        endpoint: str = "stickybeak/",
+        sources_dir: Path = Path(".remote_sources"),
+    ) -> None:
         super().__init__(address=address, endpoint=endpoint, sources_dir=sources_dir)
         self.django_settings_module = django_settings_module
 
@@ -135,15 +146,16 @@ class DjangoInjector(Injector):
         # unload django
         modules = list(sys.modules.keys())[:]
         for m in modules:
-            if 'django' in m:
+            if "django" in m:
                 sys.modules.pop(m)
 
         modules_before: List[str] = list(sys.modules.keys())[:]
         sys.path.append(str(self.sources_dir.absolute()))
 
-        os.environ['DJANGO_SETTINGS_MODULE'] = self.django_settings_module
+        os.environ["DJANGO_SETTINGS_MODULE"] = self.django_settings_module
 
         import django
+
         django.setup()
         content: bytes = self.execute_remote_code(code)
         ret: Dict[str, object] = pickle.loads(content)
@@ -157,8 +169,8 @@ class DjangoInjector(Injector):
             sys.modules.pop(m)
 
         # handle exceptions
-        if '__exception' in ret:
-            raise ret['__exception']  # type: ignore
+        if "__exception" in ret:
+            raise ret["__exception"]  # type: ignore
 
         return ret
 
@@ -182,7 +194,7 @@ class FlaskInjector(Injector):
             sys.modules.pop(m)
 
         # handle exceptions
-        if '__exception' in ret:
-            raise ret['__exception']  # type: ignore
+        if "__exception" in ret:
+            raise ret["__exception"]  # type: ignore
 
         return ret

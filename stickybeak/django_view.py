@@ -6,6 +6,7 @@ from django import urls
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+
 from rest_framework.views import APIView
 
 from stickybeak.handle_requests import get_source, inject
@@ -23,4 +24,6 @@ class InjectView(APIView):
         return HttpResponse(json.dumps(get_source(project_dir)), status=200)
 
 
-stickybeak_url = urls.path(r'stickybeak/', csrf_exempt(InjectView.as_view()), name='stickybeak')
+stickybeak_url = urls.path(
+    r"stickybeak/", csrf_exempt(InjectView.as_view()), name="stickybeak"
+)

@@ -68,6 +68,10 @@ jobs:
           name: Run rstcheck
           command: ./bin/cont/rstcheck
 
+      - run:
+          name: Run flake8
+          command: ./bin/cont/flake8
+
       - store_artifacts:
           path: test-results
           destination: artifacts

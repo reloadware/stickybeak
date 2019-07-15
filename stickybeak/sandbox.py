@@ -10,15 +10,16 @@ def execute(__code: str) -> bytes:
     try:
         exec(__code)
     except SyntaxError as exc:
-        __results = {'__exception': exc}
+        __results = {"__exception": exc}
     else:
         __results = dict(locals())
 
-    if '__code' in __results:
-        del __results['__code']
+    if "__code" in __results:
+        del __results["__code"]
 
     import pickle as pickle
     import types as types
+
     cleared_results: Dict[str, object] = {}
 
     for key, value in __results.items():

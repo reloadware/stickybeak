@@ -5,6 +5,7 @@ from typing import Dict
 import flask
 from flask import Flask, Response, request
 from flask.views import MethodView
+
 from stickybeak.handle_requests import get_source, inject
 
 
@@ -19,4 +20,4 @@ class StickybeakAPI(MethodView):
 
 
 def setup(app: Flask) -> None:
-    app.add_url_rule('/stickybeak/', view_func=StickybeakAPI.as_view('stickybeak'))
+    app.add_url_rule("/stickybeak/", view_func=StickybeakAPI.as_view("stickybeak"))

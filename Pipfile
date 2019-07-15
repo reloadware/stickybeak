@@ -23,6 +23,7 @@ pipenv-to-requirements = "*"
 flake8-import-order = "*"
 isort = "*"
 flask = "*"
+black = "*"
 
 [packages]
 djangorestframework = "*"
@@ -31,3 +32,6 @@ flask = "*"
 
 [requires]
 python_version = "3.7"
+
+[pipenv]
+allow_prereleases = true

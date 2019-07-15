@@ -9,6 +9,9 @@ Stickybeak - Life changing E2E tests solution
 .. image:: https://circleci.com/gh/dkrystki/stickybeak.svg?style=svg
     :target: https://circleci.com/gh/dkrystki/stickybeak
 
+.. image:: https://codecov.io/gh/dkrystki/stickybeak/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/dkrystki/stickybeak
+
 .. image:: https://img.shields.io/badge/python-3.6-blue.svg
     :target: https://www.python.org/downloads/release/python-360/
 

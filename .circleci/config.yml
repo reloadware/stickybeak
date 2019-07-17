@@ -53,25 +53,22 @@ jobs:
           command: |
             ./tests/flask_srv/bin/ci/start
           background: true
-
       - run:
           name: Wait for services
           command: ./bin/cont/wait_for_services.py
       - run:
           name: Run tests
           command: ./bin/cont/test
-      - codecov/upload
       - run:
           name: Run mypy
           command: ./bin/cont/mypy
       - run:
           name: Run rstcheck
           command: ./bin/cont/rstcheck
-
       - run:
           name: Run flake8
           command: ./bin/cont/flake8
-
+      - codecov/upload:
       - store_artifacts:
           path: test-results
           destination: artifacts

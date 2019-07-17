@@ -23,7 +23,7 @@ Usually end to end testing is hard to debug when something goes wrong since mode
 This library can flatten even the most complex application and help developers write tests that are easy to debug and reflect real life scenarios.
 This can save Hundreds of unit and integration tests.
 
-How it works
+How does it work
 ------------
 Stickybeak uses code injection to execute arbitrary python code on remote servers in local python script environment.
 Code injection might sound scary but this solution is completely safe since code injection endpoints are only enabled

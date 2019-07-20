@@ -2,11 +2,13 @@ import json
 import os
 from pathlib import Path
 
+from furl import furl
+
 import pytest
 
 from requests import Response
 
-from stickybeak.handle_requests import get_source, inject
+from stickybeak import handle_requests
 from stickybeak.injector import DjangoInjector, FlaskInjector
 
 flask_srv: str
@@ -28,15 +30,22 @@ def injector(request, mocker):
     if request.param == local_srv:
 
         def mock_post(endpoint: str, data: str, headers: dict) -> Response:
-            result: bytes = inject(json.loads(data))
+            result: bytes = handle_requests.inject(json.loads(data))
             response = Response()
             response._content = result
             response.status_code = 200
             return response
 
         def mock_get(endpoint: str) -> Response:
+            url: furl = furl(endpoint)
             response = Response()
-            response._content = json.dumps(get_source(Path("tests/django_srv")))
+
+            if url.path.segments[-1] == "source":
+                response._content = json.dumps(
+                    handle_requests.get_source(Path("tests/django_srv"))
+                )
+            elif url.path.segments[-1] == "envs":
+                response._content = json.dumps(handle_requests.get_envs())
             response.status_code = 200
             return response
 

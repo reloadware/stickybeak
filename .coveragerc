@@ -4,6 +4,3 @@ data_file = ./test-results/.coverage
 
 [xml]
 output=./test-results/coverage.xml
-
-[html]
-directory=./test-results/htmlcov

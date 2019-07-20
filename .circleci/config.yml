@@ -13,6 +13,7 @@ install_packages: &install_packages
     name: Install developer packages
     command: |
       sudo pip install pipenv
+      echo TEST_ENV=TEST_ENV_VALUE > .env
       pipenv install -d
       pipenv run python setup.py clean
 
@@ -37,47 +38,46 @@ jobs:
 
       - run:
           name: Install and run django_srv
-          command: |
-            ./tests/django_srv/bin/ci/install
+          command: ./tests/django_srv/bin/ci/install
       - run:
           name: Run django_srv
-          command: |
-            ./tests/django_srv/bin/ci/start
+          command: ./tests/django_srv/bin/ci/start
           background: true
       - run:
           name: Install flask_srv
-          command: |
-            ./tests/flask_srv/bin/ci/install
+          command: ./tests/flask_srv/bin/ci/install
       - run:
           name: Run flask_srv
-          command: |
-            ./tests/flask_srv/bin/ci/start
+          command: ./tests/flask_srv/bin/ci/start
           background: true
       - run:
           name: Wait for services
-          command: ./bin/cont/wait_for_services.py
+          command: ./bin/ci/wait_for_services.py
       - run:
           name: Run tests
-          command: ./bin/cont/test
+          command: ./bin/ci/test
       - run:
           name: Run mypy
-          command: ./bin/cont/mypy
+          command: ./bin/ci/mypy
       - run:
           name: Run rstcheck
-          command: ./bin/cont/rstcheck
+          command: ./bin/ci/rstcheck
       - run:
           name: Run flake8
-          command: ./bin/cont/flake8
-      - codecov/upload:
+          command: ./bin/ci/flake8
       - store_artifacts:
           path: test-results
           destination: artifacts
       - store_test_results:
           path: test-results
+      - codecov/upload
 
   publish:
     <<: *defaults
     steps:
+      - run:
+          name: Init
+          command: sudo chown circleci:circleci /srv
       - checkout
       - *restore_cache
       - *install_packages

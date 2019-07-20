@@ -1,4 +1,5 @@
 import glob
+import os
 from pathlib import Path
 from typing import Dict
 
@@ -27,3 +28,12 @@ def get_source(project_dir: Path) -> Dict[str, str]:
         source_code[rel_path] = path.read_text()
 
     return source_code
+
+
+def get_envs() -> Dict[str, str]:
+    envs: Dict[str, str] = dict()
+
+    for key, value in os.environ.items():
+        envs[key] = value
+
+    return envs

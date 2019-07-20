@@ -7,6 +7,7 @@ def execute(__code: str) -> bytes:
        Helps to avoid local variable conflicts."""
 
     __results: Dict[str, object]
+
     try:
         exec(__code)
     except SyntaxError as exc:

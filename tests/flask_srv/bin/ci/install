@@ -3,5 +3,7 @@
 cd /srv/tests/flask_srv
 
 export PIPENV_VENV_IN_PROJECT=true
+echo TEST_ENV=TEST_ENV_VALUE > .env
+
 pipenv install -d
 pipenv install -e ../../

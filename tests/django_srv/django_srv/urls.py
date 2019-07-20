@@ -16,10 +16,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-from stickybeak.django_view import stickybeak_url
-
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("health-check/", include("health_check.urls")),
-    stickybeak_url,
+    path("stickybeak/", include("stickybeak.dj.urls")),
 ]

@@ -35,7 +35,8 @@ class Injector(ABC):
         self._download_remote_code()
 
     def _download_remote_code(self) -> None:
-        response: requests.Response = requests.get(self.endpoint)
+        url: str = urljoin(self.endpoint, "source")
+        response: requests.Response = requests.get(url)
         response.raise_for_status()
 
         sources: Dict[str, str] = json.loads(response.content)
@@ -50,16 +51,34 @@ class Injector(ABC):
             abs_path.touch()
             abs_path.write_text(source)
 
+    def _get_env_vars(self) -> os._Environ: # type: ignore
+        url: str = urljoin(self.endpoint, "envs")
+        response: requests.Response = requests.get(url)
+        response.raise_for_status()
+
+        envs: Dict[str, str] = json.loads(response.content)
+
+        environ = os._Environ(  # type: ignore
+            data=envs,
+            encodekey=lambda x: x,
+            decodekey=lambda x: x,
+            encodevalue=lambda x: x,
+            decodevalue=lambda x: x,
+            putenv=lambda k, v: None,
+            unsetenv=lambda k, v: None,
+        )
+
+        return environ
+
     def execute_remote_code(self, code: str) -> bytes:
+        url: str = urljoin(self.endpoint, "inject")
         code = self._add_try_except(code)
 
         headers: Dict[str, str] = {"Content-type": "application/json"}
         payload: Dict[str, str] = {"code": code}
         data: str = json.dumps(payload)
 
-        response: requests.Response = requests.post(
-            self.endpoint, data=data, headers=headers
-        )
+        response: requests.Response = requests.post(url, data=data, headers=headers)
         response.raise_for_status()
 
         return response.content
@@ -156,11 +175,19 @@ class DjangoInjector(Injector):
 
         import django
 
+        env_vars_local: os._Environ = os.environ   # type: ignore
+        env_vars_remote: os._Environ = self._get_env_vars()  # type: ignore
+        os.environ = env_vars_remote
+
         django.setup()
         content: bytes = self.execute_remote_code(code)
+
         ret: Dict[str, object] = pickle.loads(content)
 
+        os.environ = env_vars_local
+
         sys.path.remove(str(self.sources_dir.absolute()))
+        del os.environ["DJANGO_SETTINGS_MODULE"]
         modules_after: List[str] = list(sys.modules.keys())[:]
 
         diff: List[str] = list(set(modules_after) - set(modules_before))

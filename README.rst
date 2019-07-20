@@ -24,7 +24,7 @@ This library can flatten even the most complex application and help developers w
 This can save Hundreds of unit and integration tests.
 
 How does it work
-------------
+----------------
 Stickybeak uses code injection to execute arbitrary python code on remote servers in local python script environment.
 Code injection might sound scary but this solution is completely safe since code injection endpoints are only enabled
 in testing or staging environment.

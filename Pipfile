@@ -24,6 +24,8 @@ flake8-import-order = "*"
 isort = "*"
 flask = "*"
 black = "*"
+furl = "*"
+pytest-env = "*"
 
 [packages]
 djangorestframework = "*"

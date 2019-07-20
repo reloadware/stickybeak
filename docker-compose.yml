@@ -3,6 +3,7 @@ version: '3.5'
 services:
   django_srv:
     container_name: django-srv
+    hostname: django-srv
     build:
       dockerfile: ./tests/django_srv/Dockerfile
       context: .
@@ -13,16 +14,23 @@ services:
     volumes:
       - "./tests/django_srv:/srv"
       - "./stickybeak:/usr/local/lib/python3.7/site-packages/stickybeak"
+    environment:
+      - TEST_ENV=TEST_ENV_VALUE
 
   stickybeak:
+    hostname: stickybeak
     container_name: stickybeak
     build: .
-    command: "tail -f /dev/null"
+    user: root
+    command: /usr/bin/supervisord
     restart: always
     networks:
       - network
     volumes:
       - ".:/srv"
+      - ".:/tmp/pycharm_project_208/"
+    environment:
+      - TEST_ENV=TEST_ENV_VALUE
 
   flask_srv:
     container_name: flask-srv
@@ -36,6 +44,8 @@ services:
     volumes:
       - "./tests/flask_srv:/srv"
       - "./stickybeak:/usr/local/lib/python3.7/site-packages/stickybeak"
+    environment:
+      - TEST_ENV=TEST_ENV_VALUE
 
 networks:
   network:

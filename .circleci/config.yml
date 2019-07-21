@@ -83,10 +83,10 @@ jobs:
       - *install_packages
       - run:
           name: Build a package
-          command: ./bin/cont/build
+          command: ./bin/ci/build
       - run:
           name: Publish the package
-          command: ./bin/cont/publish
+          command: ./bin/ci/publish
 
 workflows:
   version: 2

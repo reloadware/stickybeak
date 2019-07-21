@@ -9,13 +9,11 @@ ENV SHELL /bin/bash
 # Install common
 RUN pip3 install pipenv
 
-# uncomment aliases and colors
-RUN sed -i '9,14 s/# *//' /root/.bashrc
-RUN sed -i '16,30 s/# *//' /root/.bashrc
+COPY tests/flask_srv/docker/motd/motd /etc/motd
 
-# Setup motd
-COPY docker/motd/motd /etc/motd
-RUN echo "echo -e \"`cat /etc/motd`\"" >> /root/.bashrc
+COPY docker_comm/debug/setup.sh /root/setup_debug.sh
+RUN bash /root/setup_debug.sh django_srv
+COPY docker_comm/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 WORKDIR /srv
 
@@ -28,3 +26,5 @@ RUN pipenv install --system
 COPY stickybeak ./usr/local/lib/python3.7/site-packages/stickybeak
 
 EXPOSE 8000
+
+USER django_srv

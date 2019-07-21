@@ -5,9 +5,10 @@ services:
     container_name: django-srv
     hostname: django-srv
     build:
-      dockerfile: ./tests/django_srv/Dockerfile
+      dockerfile: ./tests/django_srv/docker/Dockerfile
       context: .
-    command: ./bin/cont/start
+    user: root
+    command: /usr/bin/supervisord
     restart: always
     networks:
       - network
@@ -19,8 +20,10 @@ services:
 
   stickybeak:
     hostname: stickybeak
+    build:
+      dockerfile: ./docker/Dockerfile
+      context: .
     container_name: stickybeak
-    build: .
     user: root
     command: /usr/bin/supervisord
     restart: always
@@ -35,9 +38,10 @@ services:
   flask_srv:
     container_name: flask-srv
     build:
-      dockerfile: ./tests/flask_srv/Dockerfile
+      dockerfile: ./tests/flask_srv/docker/Dockerfile
       context: .
-    command: ./bin/cont/start
+    user: root
+    command: /usr/bin/supervisord
     restart: always
     networks:
       - network

@@ -6,7 +6,7 @@ import sys
 import textwrap
 from abc import ABC
 from pathlib import Path
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Type
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -51,7 +51,7 @@ class Injector(ABC):
             abs_path.touch()
             abs_path.write_text(source)
 
-    def _get_env_vars(self) -> os._Environ: # type: ignore
+    def _get_env_vars(self) -> os._Environ:  # type: ignore
         url: str = urljoin(self.endpoint, "envs")
         response: requests.Response = requests.get(url)
         response.raise_for_status()
@@ -95,21 +95,46 @@ class Injector(ABC):
         """
         raise NotImplementedError
 
-    def run_fun(self, fun: Callable[[], None]) -> Dict[str, object]:
-        code = inspect.getsource(fun)
+    def _get_fun_src(self, fun: Callable[[], None]) -> str:
+        code: str = inspect.getsource(fun)
 
-        # remove indent
-        code = textwrap.dedent(code)
+        code_lines: List[str] = code.splitlines(True)
 
-        # remove function header
-        code = "".join(code.splitlines(True)[1:])
+        if "@" in code_lines[0]:
+            code_lines.pop(0)
+
+        code_lines.pop(0)
+
+        code = "".join(code_lines)
 
         # remove indent that's left
         code = textwrap.dedent(code)
-        ret = self.run_code(code)
+
+        return code
+
+    def run_fun(self, fun: Callable[[], None]) -> Dict[str, object]:
+        ret = self.run_code(self._get_fun_src(fun))
         return ret
 
-    def decorator(self, fun: Callable[[], None]) -> Callable[[], Dict[str, object]]:
+    def klass(self, cls: Type) -> Type:  # type: ignore
+        cls._injector = self
+        methods: List[str] = [
+            a for a in dir(cls) if not a.startswith("__") and callable(getattr(cls, a))
+        ]
+
+        for m in methods:
+            def decorator(func: Callable[[], None]) -> Callable[[], Dict[str, object]]:
+                def wrapped() -> Dict[str, object]:
+                    fun_code: str = cls._injector._get_fun_src(func)
+                    return cls._injector.run_code(fun_code)  # type: ignore
+                return wrapped
+
+            method: Callable[[], None] = getattr(cls, m)
+            setattr(cls, m, decorator(method))
+
+        return cls
+
+    def function(self, fun: Callable[[], None]) -> Callable[[], Dict[str, object]]:
         """
         Decorator
         :param fun: function to be decorated:
@@ -117,17 +142,7 @@ class Injector(ABC):
         """
 
         def wrapped() -> Dict[str, object]:
-            code = inspect.getsource(fun)
-
-            # remove indent
-            code = textwrap.dedent(code)
-
-            # remove function header
-            code = "".join(code.splitlines(True)[2:])
-
-            # remove indent that's left
-            code = textwrap.dedent(code)
-            ret = self.run_code(code)
+            ret = self.run_code(self._get_fun_src(fun))
             return ret
 
         return wrapped
@@ -175,7 +190,7 @@ class DjangoInjector(Injector):
 
         import django
 
-        env_vars_local: os._Environ = os.environ   # type: ignore
+        env_vars_local: os._Environ = os.environ  # type: ignore
         env_vars_remote: os._Environ = self._get_env_vars()  # type: ignore
         os.environ = env_vars_remote
 

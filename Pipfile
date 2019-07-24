@@ -26,6 +26,7 @@ flask = "*"
 black = "*"
 furl = "*"
 pytest-env = "*"
+docutils = "==0.15"
 
 [packages]
 djangorestframework = "*"

@@ -29,7 +29,7 @@ class TestInjectors:
         assert ret["c"] == 8
 
     def test_context_manager(self, injector):
-        @injector.decorator
+        @injector.function
         def fun():
             a = 1  # noqa
             b = 4  # noqa
@@ -40,7 +40,7 @@ class TestInjectors:
         assert ret["b"] == 4
 
     def test_env_variables(self, injector):
-        @injector.decorator
+        @injector.function
         def fun():
             import os
 
@@ -48,6 +48,23 @@ class TestInjectors:
 
         ret: Dict[str, object] = fun()
         assert ret["variable"] == "TEST_ENV_VALUE"
+
+    def test_interface_in_class(self, injector):
+        @injector.klass
+        class Interface:
+            @staticmethod
+            def fun():
+                a = 1  # noqa
+                b = 2  # noqa
+
+            @staticmethod
+            def fun2():
+                c = 3  # noqa
+                d = 4  # noqa
+
+        ret: Dict[str, object] = Interface.fun()
+        assert ret["a"] == 1
+        assert ret["b"] == 2
 
 
 @pytest.mark.usefixtures("django_injector")

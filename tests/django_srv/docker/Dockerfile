@@ -9,7 +9,7 @@ ENV SHELL /bin/bash
 # Install common
 RUN pip3 install pipenv
 
-COPY tests/flask_srv/docker/motd/motd /etc/motd
+COPY tests/django_srv/docker/motd/motd /etc/motd
 
 COPY docker_comm/debug/setup.sh /root/setup_debug.sh
 RUN bash /root/setup_debug.sh django_srv

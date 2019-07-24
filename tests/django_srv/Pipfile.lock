@@ -231,11 +231,11 @@
         },
         "stickybeak": {
             "hashes": [
-                "sha256:ad519cc254aa158484e444ebee2c6e4c76b7cd893bb08c0e659ef1de1020193a",
-                "sha256:d5756cd0f69b5845ffe55323424a7926c84b18b164ff2245019cd3fbca7f12cc"
+                "sha256:66a91a311d913d8ddbee719197cdf7c49c16ea68dc7a0c804da7f27b23bbc609",
+                "sha256:e94f536e7563115d83806d69b76a16ae8294130e7f82d9d075c556eb13886c18"
             ],
             "index": "pypi",
-            "version": "==0.1.5"
+            "version": "==0.2.6"
         },
         "traitlets": {
             "hashes": [

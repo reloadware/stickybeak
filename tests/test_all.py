@@ -7,11 +7,16 @@ class TestInjectors:
         def fun() -> int:
             a = 5
             b = 3
-            c = a + b  # noqa
+            c = a + b
             return c
 
         ret: int = injector.run_fun(fun)
         assert ret == 8
+
+    def test_syntax_errors(self, injector):
+        with pytest.raises(SyntaxError):
+            ret: int = injector.run_code("a=1////2")
+            assert ret == 0.5
 
     def test_decorator(self, injector):
         @injector.function
@@ -48,6 +53,15 @@ class TestInjectors:
             return os.environ["TEST_ENV"]
 
         assert fun() == "TEST_ENV_VALUE"
+
+    def test_exceptions(self, injector):
+        @injector.function
+        def fun() -> float:
+            a = 1 / 0
+            return a
+
+        with pytest.raises(ZeroDivisionError):
+            fun()
 
     def test_interface_in_class(self, injector):
         @injector.klass

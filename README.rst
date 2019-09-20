@@ -47,22 +47,19 @@ Example usage
 Django app (remote server)
 ##########################
 
+To enable stickybeak in a django application add the following line to your :code:`urls.py` file:
+
 .. code-block:: python
 
-    from django.contrib import admin
-    from django.urls import include, path
-
-    from stickybeak.django_view import stickybeak_url
-
-    urlpatterns = [
-        path('admin/', admin.site.urls),
-        stickybeak_url,
-    ]
+    path("stickybeak/", include("stickybeak.dj.urls")),
 
 
+And add :code:`stickybeak` to :code:`INSTALLED_APPS` list.
 
 Flask app (remote server)
 #########################
+To enable stickybeak in a flask application add :code:`setup(app)` as follows:
+
 .. code-block:: python
 
     from flask import Flask
@@ -74,97 +71,105 @@ Flask app (remote server)
 
 Testing app (local server)
 ##########################
+
+Functions
++++++++++
+Function arguments and returns as well as default arguments are allowed.
+
 .. code-block:: python
 
-    from stickybeak.injector import DjangoInjector, FlaskInjector
+    from stickybeak.injector import DjangoInjector
 
-    def test_exception():
-        injector = DjangoInjector(address='http://django-srv:8000',
-                                  django_settings_module='django_srv.settings')
+    injector = DjangoInjector(address='http://django-srv:8000',
+                              django_settings_module='django_srv.settings')
 
-        with pytest.raises(ZeroDivisionError):
-            injector.run_code('1/0')
+    @injector.function
+    def fun(a: int, b: int = 2) -> float:
+        return a / b
 
-    def test_simple_code():
-        injector = DjangoInjector(address='http://django-srv:8000',
-                                  django_settings_module='django_srv.settings')
-        ret: Dict[str, object] = injector.run_code('a = 123')
-        assert ret['a'] == 123
+    fun(2)
 
-    def test_function():
-        injector = DjangoInjector(address='http://django-srv:8000',
-                                  django_settings_module='django_srv.settings')
 
-        def fun():
-            # this code executes on the remote server
-            a = 5
-            b = 3
-            c = a + b
+Exceptions
+++++++++++
+Exception are forwarded from remote to local server so the following piece of code raises :code:`ZeroDivisionError`:
 
-        ret: Dict[str, object] = injector.run_fun(fun)
-        assert ret['a'] == 5
-        assert ret['b'] == 3
-        assert ret['c'] == 8
+.. code-block:: python
 
-    def test_using_decorators():
-        injector = DjangoInjector(address='http://django-srv:8000',
-                                  django_settings_module='django_srv.settings')
+    from stickybeak.injector import DjangoInjector
 
-        @injector.decorator
-        def fun():
-            # this code executes on the remote server
+    injector = DjangoInjector(address='http://django-srv:8000',
+                              django_settings_module='django_srv.settings')
+
+    @injector.function
+    def fun() -> float:
+        a = 1
+        b = 0
+        return a / b
+
+    fun()  # raises ZeroDivisionError
+
+
+
+Using complex objects from a remote server locally
+++++++++++++++++++++++++++++++++++++++++++++++++++
+Objects are pickled on the remote side and send back to the local script and are available for further inspection or use.
+
+.. code-block:: python
+
+    @self.injector.function
+    def fun():
+        from app.models import Currency
+
+        currency = Currency()
+        currency.name = "test_currency"
+        currency.endpoint = "test_endpoint"
+        currency.save()
+        return Currency.objects.all()[0]  # noqa
+
+    ret: object = fun()
+    assert ret.name == "test_currency"
+    assert ret.endpoint == "test_endpoint"
+
+Classes
++++++++
+The same concepts go to classes. Only classmethods are allowed at the moment.
+
+.. code-block:: python
+
+    @injector.klass
+    class Interface:
+        @classmethod
+        def fun(cls, x: int) -> int:
             a = 1
-            b = 4
+            b = 2
+            return a + b + x
 
-        ret: Dict[str, object] = fun()
+        @classmethod
+        def fun2(cls, x: int) -> int:
+            c = 3
+            d = 4
+            return c + d + x
 
-        assert ret['a'] == 1
-        assert ret['b'] == 4
+        @classmethod
+        def fun3(cls) -> int:
+            return cls.fun(5) + cls.fun2(x=5)
 
-    def test_django_feature():
-        injector = DjangoInjector(address='http://django-srv:8000',
-                                  django_settings_module='django_srv.settings')
-
-        @injector.decorator
-        def fun():
-            # this code executes on the remote server
-            from app.models import Currency
-            Currency.objects.all().delete()
-            currency = Currency()
-            currency.name = "test_currency"
-            currency.endpoint = "test_endpoint"
-            currency.save()
-            obj = Currency.objects.all()[0]  # noqa
-
-        ret: Dict[str, object] = fun()
-        obj = ret['obj']
-
-        # with a little bit of python magic the object is available locally as if we were running code on the remote server
-        assert obj.name == "test_currency"
-        assert obj.endpoint == "test_endpoint"
-        # it is also available for debugger so it is possible to lookup all values and even run some class functions
-
-
+    Interface.fun(1)  # 4
+    Interface.fun2(2)  # 9
+    Interface.fun3() # 20
 
 Development
 -----------
-Stickybeak uses docker to create an isolated development environment so your system is not being polluted.
+Stickybeak uses pipenv. To install packages run:
 
-Requirements
-############
-In order to run local development you have to have Docker and Docker Compose installed.
-
-
-Starting things up
-##################
 .. code-block:: console
 
-    docker-compose up -d
+    pipenv install
 
-Logging into the docker terminal
-################################
+
+Starting test servers
+#####################
 .. code-block:: console
 
-    ./bin/terminal
-
-The code is synchronised between a docker container and the host using volumes so any changes ( ``pipenv install`` etc ) will be affected on the host.
+    honcho start

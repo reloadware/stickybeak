@@ -1,92 +1,82 @@
-from typing import Dict
-
 import pytest
 
 
 @pytest.mark.usefixtures("injector")
 class TestInjectors:
-    def test_exception(self, injector):
-        with pytest.raises(ZeroDivisionError):
-            injector.run_code("1/0")
-
-        with pytest.raises(SyntaxError):
-            injector.run_code("1===1")
-
-    def test_simple_code(self, injector):
-        ret: Dict[str, object] = injector.run_code("a = 123")
-        assert ret["a"] == 123
-
     def test_function(self, injector):
-        def fun():
+        def fun() -> int:
             a = 5
             b = 3
             c = a + b  # noqa
+            return c
 
-        ret: Dict[str, object] = injector.run_fun(fun)
-        # TODO: check dict size we don't wanna anything more that needed
-        assert ret["a"] == 5
-        assert ret["b"] == 3
-        assert ret["c"] == 8
+        ret: int = injector.run_fun(fun)
+        assert ret == 8
 
-    def test_context_manager(self, injector):
+    def test_decorator(self, injector):
         @injector.function
-        def fun():
-            a = 1  # noqa
-            b = 4  # noqa
+        def fun() -> int:
+            a = 1
+            b = 4
+            return a + b
 
-        ret: Dict[str, object] = fun()
+        assert fun() == 5
 
-        assert ret["a"] == 1
-        assert ret["b"] == 4
+    def test_arguments(self, injector):
+        @injector.function
+        def fun(d: int, e: int, x: int) -> int:
+            a = 1
+            b = 4
+            return a + b + d + e + x
+
+        assert fun(5, 6, x=2) == 18
+
+    def test_arguments_default(self, injector):
+        @injector.function
+        def fun(d: int, e: int, x: int = 2) -> int:
+            a = 1
+            b = 4
+            return a + b + d + e + x
+
+        assert fun(5, 6) == 18
 
     def test_env_variables(self, injector):
         @injector.function
-        def fun():
+        def fun() -> str:
             import os
 
-            variable = os.environ["TEST_ENV"]  # noqa
+            return os.environ["TEST_ENV"]
 
-        ret: Dict[str, object] = fun()
-        assert ret["variable"] == "TEST_ENV_VALUE"
+        assert fun() == "TEST_ENV_VALUE"
 
     def test_interface_in_class(self, injector):
         @injector.klass
         class Interface:
-            @staticmethod
-            def fun():
-                a = 1  # noqa
-                b = 2  # noqa
+            @classmethod
+            def fun(cls, x: int) -> int:
+                a = 1
+                b = 2
+                return a + b + x
 
-            @staticmethod
-            def fun2():
-                c = 3  # noqa
-                d = 4  # noqa
+            @classmethod
+            def fun2(cls, x: int) -> int:
+                c = 3
+                d = 4
+                return c + d + x
 
-        ret: Dict[str, object] = Interface.fun()
-        assert ret["a"] == 1
-        assert ret["b"] == 2
+            @classmethod
+            def fun3(cls) -> int:
+                return cls.fun(5) + cls.fun2(x=5)
+
+        assert Interface.fun(1) == 4
+        assert Interface.fun2(2) == 9
+        assert Interface.fun3() == 20
 
 
 @pytest.mark.usefixtures("django_injector")
 class TestDjango:
-    def test_importing_model(self):
-        def fun():
-            from app.models import Currency
-
-            Currency.objects.all().delete()
-            currency = Currency()
-            currency.name = "test_currency"
-            currency.endpoint = "test_endpoint"
-            currency.save()
-
-            objects = Currency.objects.all()  # noqa
-            obj = Currency.objects.all()[0]  # noqa
-
-        ret: Dict[str, object] = self.injector.run_fun(fun)
-        assert "obj" in ret
-        assert "objects" in ret
-
     def test_accessing_fields(self):
+        @self.injector.function
         def fun():
             from app.models import Currency
 
@@ -95,10 +85,8 @@ class TestDjango:
             currency.name = "test_currency"
             currency.endpoint = "test_endpoint"
             currency.save()
-            obj = Currency.objects.all()[0]  # noqa
+            return Currency.objects.all()[0]  # noqa
 
-        ret: Dict[str, object] = self.injector.run_fun(fun)
-        obj = ret["obj"]
-
-        assert obj.name == "test_currency"
-        assert obj.endpoint == "test_endpoint"
+        ret: object = fun()
+        assert ret.name == "test_currency"
+        assert ret.endpoint == "test_endpoint"

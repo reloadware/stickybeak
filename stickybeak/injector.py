@@ -6,7 +6,7 @@ import sys
 import textwrap
 from abc import ABC
 from pathlib import Path
-from typing import Callable, Dict, List, Type
+from typing import Callable, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -72,8 +72,6 @@ class Injector(ABC):
 
     def execute_remote_code(self, code: str) -> bytes:
         url: str = urljoin(self.endpoint, "inject")
-        code = self._add_try_except(code)
-
         headers: Dict[str, str] = {"Content-type": "application/json"}
         payload: Dict[str, str] = {"code": code}
         data: str = json.dumps(payload)
@@ -83,7 +81,7 @@ class Injector(ABC):
 
         return response.content
 
-    def run_code(self, code: str) -> Dict[str, object]:
+    def run_code(self, code: str) -> object:
         """Execute code.
         Returns:
             Dictionary containing all local variables.
@@ -103,30 +101,66 @@ class Injector(ABC):
         if "@" in code_lines[0]:
             code_lines.pop(0)
 
-        code_lines.pop(0)
-
         code = "".join(code_lines)
 
         # remove indent that's left
         code = textwrap.dedent(code)
-
         return code
 
-    def run_fun(self, fun: Callable[[], None]) -> Dict[str, object]:
-        ret = self.run_code(self._get_fun_src(fun))
+    @staticmethod
+    def _format_args(
+        args: Optional[Tuple[object, ...]], kwargs: Optional[Dict[str, object]]
+    ) -> str:
+        ret = ""
+        if args:
+            args_clean: str = ", ".join([str(a) for a in args])
+            ret += args_clean
+
+        if kwargs:
+            kwargs_clean: str = ", ".join([f"{str(k)}={v}" for k, v in kwargs.items()])
+            ret += (", " if args else "") + kwargs_clean
+
+        return f"({ret})"
+
+    def run_fun(
+        self,
+        fun: Callable[[], None],
+        args: Optional[Tuple[object, ...]] = None,
+        kwargs: Optional[Dict[str, object]] = None,
+    ) -> object:
+        code: str = self._get_fun_src(fun)
+        code += f"\n__return = {fun.__name__}{self._format_args(args, kwargs)}"
+        code = self._add_try_except(code)
+        ret = self.run_code(code)
         return ret
 
-    def klass(self, cls: Type) -> Type:  # type: ignore
-        cls._injector = self
+    def run_klass_fun(
+        self,
+        klass: type,
+        fun: str,
+        args: Optional[Tuple[object, ...]] = None,
+        kwargs: Optional[Dict[str, object]] = None,
+    ) -> object:
+        code: str = textwrap.dedent(inspect.getsource(klass))
+        code += f"\n__return = {klass.__name__}.{fun}{self._format_args(args, kwargs)}"
+        code = self._add_try_except(code)
+        ret = self.run_code(code)
+        return ret
+
+    def klass(self, cls: type) -> type:
+        cls._injector = self  # type: ignore
         methods: List[str] = [
             a for a in dir(cls) if not a.startswith("__") and callable(getattr(cls, a))
         ]
 
         for m in methods:
-            def decorator(func: Callable[[], None]) -> Callable[[], Dict[str, object]]:
-                def wrapped() -> Dict[str, object]:
-                    fun_code: str = cls._injector._get_fun_src(func)
-                    return cls._injector.run_code(fun_code)  # type: ignore
+
+            def decorator(func: Callable[[], None]) -> Callable:
+                def wrapped(*args: object, **kwargs: object) -> object:
+                    return cls._injector.run_klass_fun(   # type: ignore
+                        cls, func.__name__, args, kwargs
+                    )
+
                 return wrapped
 
             method: Callable[[], None] = getattr(cls, m)
@@ -134,15 +168,15 @@ class Injector(ABC):
 
         return cls
 
-    def function(self, fun: Callable[[], None]) -> Callable[[], Dict[str, object]]:
+    def function(self, fun: Callable[[], None]) -> Callable:
         """
         Decorator
         :param fun: function to be decorated:
         :return decorated function:
         """
 
-        def wrapped() -> Dict[str, object]:
-            ret = self.run_code(self._get_fun_src(fun))
+        def wrapped(*args: object, **kwargs: object) -> object:
+            ret = self.run_fun(fun, args, kwargs)
             return ret
 
         return wrapped
@@ -173,7 +207,7 @@ class DjangoInjector(Injector):
         super().__init__(address=address, endpoint=endpoint, sources_dir=sources_dir)
         self.django_settings_module = django_settings_module
 
-    def run_code(self, code: str) -> Dict[str, object]:
+    def run_code(self, code: str) -> object:
         # we have to unload all the django modules so django accepts the new configuration
         # make a module copy so we can iterate over it and delete modules from the original one
 
@@ -197,7 +231,7 @@ class DjangoInjector(Injector):
         django.setup()
         content: bytes = self.execute_remote_code(code)
 
-        ret: Dict[str, object] = pickle.loads(content)
+        ret: object = pickle.loads(content)
 
         os.environ = env_vars_local
 
@@ -211,14 +245,14 @@ class DjangoInjector(Injector):
             sys.modules.pop(m)
 
         # handle exceptions
-        if "__exception" in ret:
-            raise ret["__exception"]  # type: ignore
+        if isinstance(ret, Exception):
+            raise ret
 
         return ret
 
 
 class FlaskInjector(Injector):
-    def run_code(self, code: str) -> Dict[str, object]:
+    def run_code(self, code: str) -> object:
         # we have to unload all the django modules so django accepts the new configuration
         # make a module copy so we can iterate over it and delete modules from the original one
         modules_before: List[str] = list(sys.modules.keys())[:]
@@ -226,7 +260,7 @@ class FlaskInjector(Injector):
         sys.path.append(str(self.sources_dir.absolute()))
 
         content: bytes = self.execute_remote_code(code)
-        ret: Dict[str, object] = pickle.loads(content)
+        ret: object = pickle.loads(content)
 
         sys.path.remove(str(self.sources_dir.absolute()))
 
@@ -236,7 +270,7 @@ class FlaskInjector(Injector):
             sys.modules.pop(m)
 
         # handle exceptions
-        if "__exception" in ret:
-            raise ret["__exception"]  # type: ignore
+        if isinstance(ret, Exception):
+            raise ret  # type: ignore
 
         return ret

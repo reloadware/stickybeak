@@ -3,19 +3,17 @@ defaults: &defaults
   docker:
     - image: circleci/python:3.7
       environment:
-        PIPENV_VENV_IN_PROJECT: true
-        DJANGO_SRV_HOSTNAME: localhost:8000
+        TEST_ENV: TEST_ENV_VALUE
+        DJANGO_SRV_HOSTNAME: localhost:8001
         FLASK_SRV_HOST: localhost
-        FLASK_SRV_PORT: 5000
+        FLASK_SRV_PORT: 8002
 
 install_packages: &install_packages
   run:
     name: Install developer packages
     command: |
       sudo pip install pipenv
-      echo TEST_ENV=TEST_ENV_VALUE > .env
-      pipenv install -d
-      pipenv run python setup.py clean
+      sudo pipenv install -d --system
 
 restore_cache: &restore_cache
   restore_cache:
@@ -23,8 +21,6 @@ restore_cache: &restore_cache
     key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
 
 version: 2.1
-orbs:
-  codecov: codecov/codecov@1.0.5
 jobs:
   test-lib:
     <<: *defaults
@@ -35,42 +31,61 @@ jobs:
       - checkout
       - *install_packages
       - *restore_cache
-
       - run:
-          name: Install and run django_srv
-          command: ./tests/django_srv/bin/ci/install
+          name: Create workspace
+          command: mkdir -p workspace
       - run:
-          name: Run django_srv
-          command: ./tests/django_srv/bin/ci/start
-          background: true
-      - run:
-          name: Install flask_srv
-          command: ./tests/flask_srv/bin/ci/install
-      - run:
-          name: Run flask_srv
-          command: ./tests/flask_srv/bin/ci/start
+          name: Start services
+          command: ./bin/ci/start_services.sh
           background: true
       - run:
           name: Wait for services
           command: ./bin/ci/wait_for_services.py
       - run:
           name: Run tests
-          command: ./bin/ci/test
+          command: ./bin/ci/test.sh
       - run:
           name: Run mypy
-          command: ./bin/ci/mypy
+          command: ./bin/ci/mypy.sh
       - run:
           name: Run rstcheck
-          command: ./bin/ci/rstcheck
+          command: ./bin/ci/rstcheck.sh
       - run:
           name: Run flake8
-          command: ./bin/ci/flake8
+          command: ./bin/ci/flake8.sh
       - store_artifacts:
           path: test-results
           destination: artifacts
       - store_test_results:
           path: test-results
-      - codecov/upload
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - test-results
+
+  upload-codecov:
+    working_directory: /srv
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - run:
+          name: Init
+          command: sudo chown circleci:circleci /srv
+      - checkout
+      - run:
+          name: Create workspace
+          command: mkdir -p workspace
+      - attach_workspace:
+          at: workspace
+      - run:
+          name: Upload
+          command: |
+            curl -s https://codecov.io/bash | bash -s -- \
+            -t "${CODECOV_TOKEN}" \
+            -n "${CIRCLE_BUILD_NUM}" \
+            -y ".codecov.yml" \
+            -f "./workspace/test-results/coverage.xml" \
+            -Z || echo 'Codecov upload failed'
 
   publish:
     <<: *defaults
@@ -83,10 +98,10 @@ jobs:
       - *install_packages
       - run:
           name: Build a package
-          command: ./bin/ci/build
+          command: ./bin/ci/build.sh
       - run:
           name: Publish the package
-          command: ./bin/ci/publish
+          command: ./bin/ci/publish.sh
 
 workflows:
   version: 2
@@ -96,6 +111,13 @@ workflows:
           filters:
             tags:
                 only: /.*/
+      - upload-codecov:
+          requires:
+            - test-lib
+          filters:
+            branches:
+              only: master
+
       - publish:
           requires:
             - test-lib
@@ -104,4 +126,3 @@ workflows:
               ignore: /.*/
             tags:
               only: /^[0-9]+(\.[0-9]+)*$/
-

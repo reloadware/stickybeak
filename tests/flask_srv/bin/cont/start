@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-cd /srv/tests/flask_srv/
-flask run --host=0.0.0.0 --port=5000

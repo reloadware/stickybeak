@@ -3,6 +3,7 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
+
 [dev-packages]
 pytest = "*"
 pytest-cov = "*"
@@ -19,7 +20,6 @@ django-stubs = "*"
 djangorestframework-stubs = "*"
 pbr = "*"
 django-health-check = "*"
-pipenv-to-requirements = "*"
 flake8-import-order = "*"
 isort = "*"
 flask = "*"
@@ -27,11 +27,14 @@ black = "*"
 furl = "*"
 pytest-env = "*"
 docutils = "==0.15"
+honcho = "*"
+stickybeak = {editable = true,path = "."}
 
 [packages]
 djangorestframework = "*"
 django = "*"
 flask = "*"
+requests = "*"
 
 [requires]
 python_version = "3.7"

@@ -1,6 +1,0 @@
-[run]
-source=stickybeak
-data_file = ./test-results/.coverage
-
-[xml]
-output=./test-results/coverage.xml

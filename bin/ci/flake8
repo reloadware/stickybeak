@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-set -o pipefail
-
-cd /srv
-mkdir -p test-results
-pipenv run flake8 . | tee ./test-results/flake8.txt

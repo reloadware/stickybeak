@@ -1,0 +1,6 @@
+[run]
+source=stickybeak
+data_file=/srv/workspace/test-results/.coverage
+
+[xml]
+output=/srv/workspace/test-results/coverage.xml

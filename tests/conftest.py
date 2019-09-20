@@ -2,10 +2,8 @@ import json
 import os
 from pathlib import Path
 
-from furl import furl
-
 import pytest
-
+from furl import furl
 from requests import Response
 
 from stickybeak import handle_requests
@@ -15,14 +13,9 @@ flask_srv: str
 django_srv: str
 local_srv: str
 
-if "CIRCLECI" in os.environ:
-    flask_srv: str = f"http://{os.environ['FLASK_SRV_HOST']}:{os.environ['FLASK_SRV_PORT']}"
-    django_srv: str = f"http://{os.environ['DJANGO_SRV_HOSTNAME']}"
-    local_srv: str = "http://local-mock"
-else:
-    flask_srv: str = "http://flask-srv:5000"
-    django_srv: str = "http://django-srv:8000"
-    local_srv: str = "http://local-mock"
+flask_srv: str = f"http://{os.environ['FLASK_SRV_HOST']}:{os.environ['FLASK_SRV_PORT']}"
+django_srv: str = f"http://{os.environ['DJANGO_SRV_HOSTNAME']}"
+local_srv: str = "http://local-mock"
 
 
 @pytest.fixture(params=[flask_srv, django_srv, local_srv])
@@ -42,7 +35,7 @@ def injector(request, mocker):
 
             if url.path.segments[-1] == "source":
                 response._content = json.dumps(
-                    handle_requests.get_source(Path("tests/django_srv"))
+                    handle_requests.get_source(Path("test_srvs/django_srv"))
                 )
             elif url.path.segments[-1] == "envs":
                 response._content = json.dumps(handle_requests.get_envs())
@@ -56,8 +49,7 @@ def injector(request, mocker):
         get_mock.side_effect = mock_get
 
         return DjangoInjector(
-            address=request.param,
-            django_settings_module="tests.django_srv.django_srv.settings",
+            address=request.param, django_settings_module="django_srv.settings"
         )
 
     if request.param == django_srv:

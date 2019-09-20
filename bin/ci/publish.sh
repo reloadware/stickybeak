@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 
-set -o pipefail
+set -euxo pipefail
 
 cd /srv
 echo "[pypi]" >> ~/.pypirc
 echo "username=$PYPI_USERNAME" >> ~/.pypirc
 echo "password=$PYPI_PASSWORD" >> ~/.pypirc
 
-pipenv run twine upload --repository pypi dist/*
-
+twine upload --repository pypi dist/*

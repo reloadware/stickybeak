@@ -6,33 +6,18 @@ def execute(__code: str) -> bytes:
     """Function where the injected code will be executed.
        Helps to avoid local variable conflicts."""
 
-    __results: Dict[str, object]
-
+    results: Dict[str, object]
     try:
         exec(__code)
     except SyntaxError as exc:
-        __results = {"__exception": exc}
+        results = {"__exception": exc}
     else:
-        __results = dict(locals())
-
-    if "__code" in __results:
-        del __results["__code"]
+        results = dict(locals())
 
     import pickle as pickle
-    import types as types
 
-    cleared_results: Dict[str, object] = {}
-
-    for key, value in __results.items():
-        if isinstance(value, types.ModuleType):
-            continue
-        if isinstance(value, types.FunctionType):
-            continue
-        if isinstance(value, types.MethodType):
-            continue
-
-        cleared_results[key] = value
-
-    ret: bytes = pickle.dumps(cleared_results)
+    ret: bytes = pickle.dumps(
+        results["__exception"] if "__exception" in results else results["__return"]
+    )
 
     return ret

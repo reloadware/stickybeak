@@ -1,0 +1,16 @@
+repos:
+  - repo: local
+    hooks:
+    - id: freeze-requirements
+      name: Freeze requirements
+      entry: "bin/host/freeze-requirements"
+      language: script
+      exclude: '.*'
+      always_run: true
+
+    - id: black
+      name: Make it black
+      entry: "bin/host/black"
+      language: script
+      exclude: '.*'
+      always_run: true

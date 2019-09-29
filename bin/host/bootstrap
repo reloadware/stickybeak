@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+# Not tested yet
+
+pip install pipenv
+pipenv install -d
+pre-commit install

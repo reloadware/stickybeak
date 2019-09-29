@@ -1,0 +1,38 @@
+################################################################################
+# This requirements file has been automatically generated from `Pipfile` with
+# `pipenv-to-requirements`
+#
+#
+# This has been done to maintain backward compatibility with tools and services
+# that do not support `Pipfile` yet.
+#
+# Do NOT edit it directly, use `pipenv install [-d]` to modify `Pipfile` and
+# `Pipfile.lock` and then regenerate `requirements*.txt`.
+################################################################################
+
+-e .
+black
+django
+django-health-check
+django-stubs
+djangorestframework
+djangorestframework-stubs
+docutils==0.15
+flake8
+flake8-import-order
+flask
+furl
+honcho
+ipython
+isort
+mypy
+pbr
+pipenv-to-requirements
+pre-commit
+pytest
+pytest-cov
+pytest-env
+pytest-mock
+pytest-mypy
+rstcheck
+twine

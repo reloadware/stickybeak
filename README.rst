@@ -19,18 +19,25 @@ Stickybeak - Life changing E2E tests solution
     :target: https://www.python.org/downloads/release/python-370/
 
 Stickybeak is an end to end test helper library that saves lots of testing endpoints and boilerplate code.
-Usually end to end testing is hard to debug when something goes wrong since modern microservice architecture can be quite convoluted.
-This library can flatten even the most complex application and help developers write tests that are easy to debug and reflect real life scenarios.
+Usually end to end testing is hard to debug when something goes wrong since modern microservice architecture can be
+quite convoluted. This library can flatten structure of even the most complex application and help developers write
+tests that are easy to debug and reflect real life scenarios.
+
 This can save Hundreds of unit and integration tests.
 
 How does it work
 ----------------
-Stickybeak uses code injection to execute arbitrary python code on remote servers in local python script environment.
+Stickybeak uses code injection to execute arbitrary python code on remote servers in a local environment or dedicated
+centralized testing microservice.
 Code injection might sound scary but this solution is completely safe since code injection endpoints are only enabled
 in testing or staging environment.
-Results of executed code including all local variables or raised exceptions are pickled on remote server and sent back to
-the testing script where are unpickled and available for further testing and debugging - just like the code was executed locally.
+Results of executed code including all local variables or raised exceptions are pickled on remote server and sent back
+to the testing script where are unpickled and available for further testing and debugging - just like the code was
+executed locally.
+
 Pretty amazing huh :) ?
+
+
 At the moment stickybeak supports Django and Flask frameworks.
 
 

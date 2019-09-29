@@ -157,7 +157,7 @@ class Injector(ABC):
 
             def decorator(func: Callable[[], None]) -> Callable:
                 def wrapped(*args: object, **kwargs: object) -> object:
-                    return cls._injector.run_klass_fun(   # type: ignore
+                    return cls._injector.run_klass_fun(  # type: ignore
                         cls, func.__name__, args, kwargs
                     )
 

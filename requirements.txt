@@ -10,8 +10,4 @@
 # `Pipfile.lock` and then regenerate `requirements*.txt`.
 ################################################################################
 
-django
-django-environ
-djangorestframework
-flask
 requests

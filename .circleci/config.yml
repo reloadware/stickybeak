@@ -8,13 +8,6 @@ defaults: &defaults
         FLASK_SRV_HOST: localhost
         FLASK_SRV_PORT: 8002
 
-install_packages: &install_packages
-  run:
-    name: Install developer packages
-    command: |
-      sudo pip install pipenv
-      sudo pipenv install -d --system
-
 restore_cache: &restore_cache
   restore_cache:
     name: "Restore cache"
@@ -29,30 +22,32 @@ jobs:
           name: Init
           command: sudo chown circleci:circleci /srv
       - checkout
-      - *install_packages
+      - run:
+          name: Bootstrap
+          command: ./bin/ci/bootstrap
       - *restore_cache
       - run:
           name: Create workspace
           command: mkdir -p workspace
       - run:
           name: Start services
-          command: ./bin/ci/start_services.sh
+          command: ./bin/ci/start_services
           background: true
       - run:
           name: Wait for services
           command: ./bin/ci/wait_for_services.py
       - run:
           name: Run tests
-          command: ./bin/ci/test.sh
+          command: ./bin/ci/test
       - run:
           name: Run mypy
-          command: ./bin/ci/mypy.sh
+          command: ./bin/ci/mypy
       - run:
           name: Run rstcheck
-          command: ./bin/ci/rstcheck.sh
+          command: ./bin/ci/rstcheck
       - run:
           name: Run flake8
-          command: ./bin/ci/flake8.sh
+          command: ./bin/ci/flake8
       - store_artifacts:
           path: test-results
           destination: artifacts
@@ -95,13 +90,17 @@ jobs:
           command: sudo chown circleci:circleci /srv
       - checkout
       - *restore_cache
-      - *install_packages
+      - run:
+          name: Install the packages
+          command: |
+            sudo pip install pipenv
+            sudo pipenv install -d --system
       - run:
           name: Build a package
-          command: ./bin/ci/build.sh
+          command: ./bin/ci/build
       - run:
           name: Publish the package
-          command: ./bin/ci/publish.sh
+          command: ./bin/ci/publish
 
 workflows:
   version: 2
@@ -117,6 +116,8 @@ workflows:
           filters:
             branches:
               only: master
+            tags:
+              only: /^[0-9]+(\.[0-9]+)*$/
 
       - publish:
           requires:

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -xeuo pipefail
+
 pipenv run pipenv_to_requirements
 git add requirements.txt
 git add requirements-dev.txt

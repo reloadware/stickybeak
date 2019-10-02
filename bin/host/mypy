@@ -2,5 +2,5 @@
 
 set -xeuo pipefail
 
-pipenv run black .
+pipenv run mypy .
 git add -u

@@ -4,4 +4,4 @@ set -euxo pipefail
 
 cd /srv
 mkdir -p workspace/test-results
-mypy . | tee ./workspace/test-results/mypy.txt
+pipenv run flake8 . | tee ./workspace/test-results/flake8.txt

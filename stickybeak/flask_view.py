@@ -21,6 +21,11 @@ class SourceView(MethodView):
         return Response(json.dumps(handle_requests.get_source(project_dir)), status=200)
 
 
+class RequirementsView(MethodView):
+    def get(self) -> Response:
+        return Response(json.dumps(handle_requests.get_requirements()), status=200)
+
+
 class EnvsView(MethodView):
     def get(self) -> Response:
         return Response(json.dumps(handle_requests.get_envs()), status=200)
@@ -29,4 +34,7 @@ class EnvsView(MethodView):
 def setup(app: Flask) -> None:
     app.add_url_rule("/stickybeak/inject", view_func=InjectView.as_view("inject"))
     app.add_url_rule("/stickybeak/source", view_func=SourceView.as_view("source"))
+    app.add_url_rule(
+        "/stickybeak/requirements", view_func=RequirementsView.as_view("requirements")
+    )
     app.add_url_rule("/stickybeak/envs", view_func=EnvsView.as_view("envs"))

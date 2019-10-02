@@ -2,12 +2,12 @@ import json
 import os
 from pathlib import Path
 
-import pytest
 from furl import furl
+import pytest
 from requests import Response
 
 from stickybeak import handle_requests
-from stickybeak.injector import DjangoInjector, FlaskInjector
+from stickybeak.injector import DjangoInjector, Injector
 
 flask_srv: str
 django_srv: str
@@ -18,7 +18,7 @@ django_srv: str = f"http://{os.environ['DJANGO_SRV_HOSTNAME']}"
 local_srv: str = "http://local-mock"
 
 
-@pytest.fixture(params=[flask_srv, django_srv, local_srv])
+@pytest.fixture(params=[local_srv, django_srv, flask_srv])
 def injector(request, mocker):
     if request.param == local_srv:
 
@@ -39,6 +39,12 @@ def injector(request, mocker):
                 )
             elif url.path.segments[-1] == "envs":
                 response._content = json.dumps(handle_requests.get_envs())
+            elif url.path.segments[-1] == "requirements":
+                reqs: str = handle_requests.get_requirements()
+                # we have to add that to emulate extra dependencies on a remote server
+                reqs += "\ndjango-health-check==3.11.0\nrhei==0.5.2\n"
+                response._content = json.dumps(reqs)
+
             response.status_code = 200
             return response
 
@@ -58,7 +64,7 @@ def injector(request, mocker):
         )
 
     if request.param == flask_srv:
-        return FlaskInjector(address=request.param)
+        return Injector(address=request.param)
 
 
 @pytest.fixture(scope="class")

@@ -14,3 +14,24 @@ repos:
       language: script
       exclude: '.*'
       always_run: true
+
+    - id: isort
+      name: Isort
+      entry: "bin/host/isort"
+      language: script
+      exclude: '.*'
+      always_run: true
+
+    - id: flake8
+      name: Check if flaky
+      entry: "bin/host/flake8"
+      language: script
+      exclude: '.*'
+      always_run: true
+
+    - id: mypy
+      name: Check if mypy
+      entry: "bin/host/mypy"
+      language: script
+      exclude: '.*'
+      always_run: true

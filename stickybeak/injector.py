@@ -1,26 +1,22 @@
+import hashlib
 import inspect
 import json
 import os
+from pathlib import Path
 import pickle
+import subprocess
 import sys
 import textwrap
-from abc import ABC
-from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
 import requests
 
 
-class Injector(ABC):
+class Injector:
     """Provides interface for code injection."""
 
-    def __init__(
-        self,
-        address: str,
-        endpoint: str = "stickybeak/",
-        sources_dir: Path = Path(".remote_sources"),
-    ) -> None:
+    def __init__(self, address: str, endpoint: str = "stickybeak/") -> None:
         """
         :param address: service address that's gonna be injected.
         :param endpoint:
@@ -30,9 +26,16 @@ class Injector(ABC):
 
         self.name: str = urlparse(self.address).netloc
 
-        self.sources_dir: Path = sources_dir / Path(self.name)
+        project_dir: Path = Path(".").absolute()
+        project_hash = hashlib.sha1(str(project_dir).encode("utf-8")).hexdigest()[0:8]
+        self.stickybeak_dir: Path = Path.home() / ".stickybeak" / Path(
+            f"{self.name}_{project_hash}"
+        )
+        self.stickybeak_dir = Path(str(self.stickybeak_dir).replace(":", "_"))
 
+        self._requirements: str = ""
         self._download_remote_code()
+        self._download_requirements()
 
     def _download_remote_code(self) -> None:
         url: str = urljoin(self.endpoint, "source")
@@ -45,11 +48,36 @@ class Injector(ABC):
             raise RuntimeError("Couldn't find any source files (*.py).")
 
         for path, source in sources.items():
-            abs_path: Path = self.sources_dir / Path(path)
+            abs_path: Path = self.stickybeak_dir / Path(path)
 
             abs_path.parent.mkdir(parents=True, exist_ok=True)
             abs_path.touch()
             abs_path.write_text(source)
+
+    def _download_requirements(self) -> None:
+        url: str = urljoin(self.endpoint, "requirements")
+        response: requests.Response = requests.get(url)
+        response.raise_for_status()
+
+        requirements: str = json.loads(response.content)
+        requirements_path: Path = (self.stickybeak_dir / "requirements.txt").absolute()
+        if requirements_path.exists():
+            if requirements_path.read_text() == requirements:
+                return
+
+        requirements_path.write_text(requirements)
+
+        venv_dir: Path = (self.stickybeak_dir / ".venv").absolute()
+        python_path: Path = Path(sys.real_prefix) / "bin/python"  # type: ignore
+
+        if not venv_dir.exists():
+            subprocess.run(f"{python_path} -m venv {venv_dir}", shell=True)
+
+        if self._requirements != requirements:
+            subprocess.run(
+                f"{(venv_dir / 'bin/pip')} install -r {requirements_path}", shell=True
+            )
+            self._requirements = requirements
 
     def _get_env_vars(self) -> os._Environ:  # type: ignore
         url: str = urljoin(self.endpoint, "envs")
@@ -91,7 +119,43 @@ class Injector(ABC):
         >>> injector: Injector = Injector('http://testedservice.local')
         >>> injector.run_code('a = 1')
         """
-        raise NotImplementedError
+        # we have to unload all the django modules so django accepts the new configuration
+        # make a module copy so we can iterate over it and delete modules from the original one
+        modules_before: List[str] = list(sys.modules.keys())[:]
+        sys_path_before = sys.path[:]
+
+        envs_before: os._Environ = os.environ.copy()  # type: ignore
+        os.environ = self._get_env_vars()
+
+        sys.path = [p for p in sys.path if "site-packages" not in p]
+
+        # remove project dir from sys.path so there's no conflicts
+        sys.path.pop(0)
+        sys.path.append(str(self.stickybeak_dir.absolute()))
+        sys.path.append(
+            str(self.stickybeak_dir.absolute() / ".venv/lib/python3.7/site-packages")
+        )
+
+        self._before_execute()
+        content: bytes = self.execute_remote_code(code)
+        ret: object = pickle.loads(content)
+
+        os.environ = envs_before
+        sys.path = sys_path_before
+
+        modules_after: List[str] = list(sys.modules.keys())[:]
+        diff: List[str] = list(set(modules_after) - set(modules_before))
+
+        for m in diff:
+            sys.modules.pop(m)
+
+        if isinstance(ret, Exception):
+            raise ret
+
+        return ret
+
+    def _before_execute(self) -> None:
+        pass
 
     def _get_fun_src(self, fun: Callable[[], None]) -> str:
         code: str = inspect.getsource(fun)
@@ -198,79 +262,18 @@ class Injector(ABC):
 
 class DjangoInjector(Injector):
     def __init__(
-        self,
-        address: str,
-        django_settings_module: str,
-        endpoint: str = "stickybeak/",
-        sources_dir: Path = Path(".remote_sources"),
+        self, address: str, django_settings_module: str, endpoint: str = "stickybeak/"
     ) -> None:
-        super().__init__(address=address, endpoint=endpoint, sources_dir=sources_dir)
+        super().__init__(address=address, endpoint=endpoint)
         self.django_settings_module = django_settings_module
 
-    def run_code(self, code: str) -> object:
-        # we have to unload all the django modules so django accepts the new configuration
-        # make a module copy so we can iterate over it and delete modules from the original one
-
-        # unload django
+    def _before_execute(self) -> None:
         modules = list(sys.modules.keys())[:]
         for m in modules:
             if "django" in m:
                 sys.modules.pop(m)
 
-        modules_before: List[str] = list(sys.modules.keys())[:]
-        sys.path.append(str(self.sources_dir.absolute()))
-
         os.environ["DJANGO_SETTINGS_MODULE"] = self.django_settings_module
-
         import django
 
-        env_vars_local: os._Environ = os.environ  # type: ignore
-        env_vars_remote: os._Environ = self._get_env_vars()  # type: ignore
-        os.environ = env_vars_remote
-
         django.setup()
-        content: bytes = self.execute_remote_code(code)
-
-        ret: object = pickle.loads(content)
-
-        os.environ = env_vars_local
-
-        sys.path.remove(str(self.sources_dir.absolute()))
-        del os.environ["DJANGO_SETTINGS_MODULE"]
-        modules_after: List[str] = list(sys.modules.keys())[:]
-
-        diff: List[str] = list(set(modules_after) - set(modules_before))
-
-        for m in diff:
-            sys.modules.pop(m)
-
-        # handle exceptions
-        if isinstance(ret, Exception):
-            raise ret
-
-        return ret
-
-
-class FlaskInjector(Injector):
-    def run_code(self, code: str) -> object:
-        # we have to unload all the django modules so django accepts the new configuration
-        # make a module copy so we can iterate over it and delete modules from the original one
-        modules_before: List[str] = list(sys.modules.keys())[:]
-
-        sys.path.append(str(self.sources_dir.absolute()))
-
-        content: bytes = self.execute_remote_code(code)
-        ret: object = pickle.loads(content)
-
-        sys.path.remove(str(self.sources_dir.absolute()))
-
-        modules_after: List[str] = list(sys.modules.keys())[:]
-        diff: List[str] = list(set(modules_after) - set(modules_before))
-        for m in diff:
-            sys.modules.pop(m)
-
-        # handle exceptions
-        if isinstance(ret, Exception):
-            raise ret  # type: ignore
-
-        return ret

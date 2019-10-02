@@ -12,15 +12,11 @@
 
 -e .
 black
-django
-django-health-check
-django-stubs
 djangorestframework
 djangorestframework-stubs
 docutils==0.15
 flake8
 flake8-import-order
-flask
 furl
 honcho
 ipython

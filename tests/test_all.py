@@ -3,6 +3,11 @@ import pytest
 
 @pytest.mark.usefixtures("injector")
 class TestInjectors:
+    def test_syntax_errors(self, injector):
+        with pytest.raises(SyntaxError):
+            ret: int = injector.run_code("a=1////2")
+            assert ret == 0.5
+
     def test_function(self, injector):
         def fun() -> int:
             a = 5
@@ -13,11 +18,6 @@ class TestInjectors:
         ret: int = injector.run_fun(fun)
         assert ret == 8
 
-    def test_syntax_errors(self, injector):
-        with pytest.raises(SyntaxError):
-            ret: int = injector.run_code("a=1////2")
-            assert ret == 0.5
-
     def test_decorator(self, injector):
         @injector.function
         def fun() -> int:
@@ -26,6 +26,13 @@ class TestInjectors:
             return a + b
 
         assert fun() == 5
+
+    def test_return_none(self, injector):
+        @injector.function
+        def fun() -> None:
+            print("Hello this is a remote server.")
+
+        assert fun() is None
 
     def test_arguments(self, injector):
         @injector.function
@@ -85,6 +92,17 @@ class TestInjectors:
         assert Interface.fun(1) == 4
         assert Interface.fun2(2) == 9
         assert Interface.fun3() == 20
+
+    def test_return_object(self, injector):
+        @injector.function
+        def fun() -> float:
+            from rhei import Stopwatch
+
+            stopwatch = Stopwatch()
+            stopwatch.start()
+            return stopwatch
+
+        assert type(fun()).__name__ == "Stopwatch"
 
 
 @pytest.mark.usefixtures("django_injector")

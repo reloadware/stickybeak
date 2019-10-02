@@ -3,4 +3,4 @@
 set -euxo pipefail
 
 cd /srv
-honcho start
+pipenv run honcho start

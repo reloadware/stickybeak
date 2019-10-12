@@ -33,16 +33,23 @@ class Injector:
         )
         self.stickybeak_dir = Path(str(self.stickybeak_dir).replace(":", "_"))
 
-        self._requirements: str = ""
-        self._download_remote_code()
-        self._download_requirements()
+        self._requirements: Dict[str, str] = {}
+        self._data: Dict[str, Dict[str, str]] = {}
+        self._get_data()
 
-    def _download_remote_code(self) -> None:
-        url: str = urljoin(self.endpoint, "source")
+        self._collect_remote_code()
+        self._collect_requirements()
+        self._collect_envs()
+
+    def _get_data(self) -> None:
+        url = urljoin(self.endpoint, "data")
         response: requests.Response = requests.get(url)
         response.raise_for_status()
 
-        sources: Dict[str, str] = json.loads(response.content)
+        self._data = json.loads(response.content)
+
+    def _collect_remote_code(self) -> None:
+        sources: Dict[str, str] = self._data["source"]
 
         if sources == {}:
             raise RuntimeError("Couldn't find any source files (*.py).")
@@ -54,18 +61,18 @@ class Injector:
             abs_path.touch()
             abs_path.write_text(source)
 
-    def _download_requirements(self) -> None:
-        url: str = urljoin(self.endpoint, "requirements")
-        response: requests.Response = requests.get(url)
-        response.raise_for_status()
-
-        requirements: str = json.loads(response.content)
+    def _collect_requirements(self) -> None:
+        requirements: Dict[str, str] = self._data["requirements"]
         requirements_path: Path = (self.stickybeak_dir / "requirements.txt").absolute()
         if requirements_path.exists():
             if requirements_path.read_text() == requirements:
                 return
 
-        requirements_path.write_text(requirements)
+        requirements_content: str = ""
+        for p, v in requirements.items():
+            requirements_content += f"{p}=={v}\n"
+
+        requirements_path.write_text(requirements_content)
 
         venv_dir: Path = (self.stickybeak_dir / ".venv").absolute()
         python_path: Path = Path(sys.real_prefix) / "bin/python"  # type: ignore
@@ -79,12 +86,8 @@ class Injector:
             )
             self._requirements = requirements
 
-    def _get_env_vars(self) -> os._Environ:  # type: ignore
-        url: str = urljoin(self.endpoint, "envs")
-        response: requests.Response = requests.get(url)
-        response.raise_for_status()
-
-        envs: Dict[str, str] = json.loads(response.content)
+    def _collect_envs(self) -> os._Environ:  # type: ignore
+        envs: Dict[str, str] = self._data["envs"]
 
         environ = os._Environ(  # type: ignore
             data=envs,
@@ -125,7 +128,7 @@ class Injector:
         sys_path_before = sys.path[:]
 
         envs_before: os._Environ = os.environ.copy()  # type: ignore
-        os.environ = self._get_env_vars()
+        os.environ = self._data["envs"]  # type: ignore
 
         sys.path = [p for p in sys.path if "site-packages" not in p]
 
@@ -268,6 +271,11 @@ class DjangoInjector(Injector):
         self.django_settings_module = django_settings_module
 
     def _before_execute(self) -> None:
+        modules = list(sys.modules.keys())[:]
+        for m in modules:
+            if "django" in m:
+                sys.modules.pop(m)
+
         os.environ["DJANGO_SETTINGS_MODULE"] = self.django_settings_module
         import django
 

@@ -7,9 +7,7 @@ from django.http import HttpRequest, HttpResponse
 
 from rest_framework.views import APIView
 
-from stickybeak.handle_requests import (
-    get_envs, get_requirements, get_source, inject,
-)
+from stickybeak.handle_requests import get_data, inject
 
 
 class InjectView(APIView):
@@ -19,20 +17,8 @@ class InjectView(APIView):
         return HttpResponse(inject(data), status=200)
 
 
-class SourceView(APIView):
+class DataView(APIView):
     @staticmethod
     def get(request: HttpRequest) -> HttpResponse:
-        project_dir: Path = Path(settings.BASE_DIR)  # type: ignore
-        return HttpResponse(json.dumps(get_source(project_dir)), status=200)
-
-
-class RequirementsView(APIView):
-    @staticmethod
-    def get(request: HttpRequest) -> HttpResponse:
-        return HttpResponse(json.dumps(get_requirements()), status=200)
-
-
-class EnvsView(APIView):
-    @staticmethod
-    def get(request: HttpRequest) -> HttpResponse:
-        return HttpResponse(json.dumps(get_envs()), status=200)
+        project_dir: Path = Path(settings.BASE_DIR)
+        return HttpResponse(json.dumps(get_data(project_dir)), status=200)

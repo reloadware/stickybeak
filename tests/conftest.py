@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from typing import Dict
 
 from furl import furl
 import pytest
@@ -33,17 +34,13 @@ def injector(request, mocker):
             url: furl = furl(endpoint)
             response = Response()
 
-            if url.path.segments[-1] == "source":
-                response._content = json.dumps(
-                    handle_requests.get_source(Path("test_srvs/django_srv"))
+            if url.path.segments[-1] == "data":
+                data: Dict[str, Dict[str, str]] = handle_requests.get_data(
+                    Path("test_srvs/django_srv")
                 )
-            elif url.path.segments[-1] == "envs":
-                response._content = json.dumps(handle_requests.get_envs())
-            elif url.path.segments[-1] == "requirements":
-                reqs: str = handle_requests.get_requirements()
-                # we have to add that to emulate extra dependencies on a remote server
-                reqs += "\ndjango-health-check==3.11.0\nrhei==0.5.2\n"
-                response._content = json.dumps(reqs)
+                data["requirements"]["django-health-check"] = "3.11.0"
+                data["requirements"]["rhei"] = "0.5.2"
+                response._content = json.dumps(data)
 
             response.status_code = 200
             return response

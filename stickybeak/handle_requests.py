@@ -1,7 +1,7 @@
 import glob
 import os
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
 from stickybeak import sandbox
 
@@ -30,19 +30,21 @@ def get_source(project_dir: Path) -> Dict[str, str]:
     return source_code
 
 
-def get_requirements() -> str:
+def get_requirements() -> Dict[str, str]:
     try:
         from pip._internal.operations import freeze  # type: ignore
     except ImportError:  # pip < 10.0
         from pip.operations import freeze  # type: ignore
 
-    cleared_reqs: List[str] = []
+    cleared_reqs: Dict[str, str] = {}
 
     for r in freeze.freeze():
         if ("-e " not in r) and ("stickybeak" not in r):
-            cleared_reqs.append(r)
+            name: str = r.split("==")[0]
+            version: str = r.split("==")[1]
+            cleared_reqs[name] = version
 
-    return "\n".join(cleared_reqs)
+    return cleared_reqs
 
 
 def get_envs() -> Dict[str, str]:
@@ -52,3 +54,13 @@ def get_envs() -> Dict[str, str]:
         envs[key] = value
 
     return envs
+
+
+def get_data(project_dir: Path) -> Dict[str, Dict[str, str]]:
+    data: Dict[str, Dict[str, str]] = {
+        "source": get_source(project_dir),
+        "requirements": get_requirements(),
+        "envs": get_envs(),
+    }
+
+    return data

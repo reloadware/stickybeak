@@ -39,7 +39,7 @@ def get_requirements() -> str:
     cleared_reqs: List[str] = []
 
     for r in freeze.freeze():
-        if ("-e" not in r) and ("stickybeak" not in r):
+        if ("-e " not in r) and ("stickybeak" not in r):
             cleared_reqs.append(r)
 
     return "\n".join(cleared_reqs)

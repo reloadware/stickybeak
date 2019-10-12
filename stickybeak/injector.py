@@ -268,11 +268,6 @@ class DjangoInjector(Injector):
         self.django_settings_module = django_settings_module
 
     def _before_execute(self) -> None:
-        modules = list(sys.modules.keys())[:]
-        for m in modules:
-            if "django" in m:
-                sys.modules.pop(m)
-
         os.environ["DJANGO_SETTINGS_MODULE"] = self.django_settings_module
         import django
 

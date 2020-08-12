@@ -28,9 +28,7 @@ class Injector:
 
         project_dir: Path = Path(".").absolute()
         project_hash = hashlib.sha1(str(project_dir).encode("utf-8")).hexdigest()[0:8]
-        self.stickybeak_dir: Path = Path.home() / ".stickybeak" / Path(
-            f"{self.name}_{project_hash}"
-        )
+        self.stickybeak_dir: Path = Path.home() / ".stickybeak" / Path(f"{self.name}_{project_hash}")
         self.stickybeak_dir = Path(str(self.stickybeak_dir).replace(":", "_"))
 
         self._requirements: Dict[str, str] = {}
@@ -75,15 +73,13 @@ class Injector:
         requirements_path.write_text(requirements_content)
 
         venv_dir: Path = (self.stickybeak_dir / ".venv").absolute()
-        python_path: Path = Path(sys.real_prefix) / "bin/python"  # type: ignore
+        python_path: Path = Path(sys.prefix) / "bin/python"  # type: ignore
 
         if not venv_dir.exists():
             subprocess.run(f"{python_path} -m venv {venv_dir}", shell=True)
 
         if self._requirements != requirements:
-            subprocess.run(
-                f"{(venv_dir / 'bin/pip')} install -r {requirements_path}", shell=True
-            )
+            subprocess.run(f"{(venv_dir / 'bin/pip')} install -r {requirements_path}", shell=True)
             self._requirements = requirements
 
     def _collect_envs(self) -> os._Environ:  # type: ignore
@@ -135,9 +131,9 @@ class Injector:
         # remove project dir from sys.path so there's no conflicts
         sys.path.pop(0)
         sys.path.append(str(self.stickybeak_dir.absolute()))
-        sys.path.append(
-            str(self.stickybeak_dir.absolute() / ".venv/lib/python3.7/site-packages")
-        )
+
+        site_packages = next((self.stickybeak_dir.absolute() / ".venv/lib").glob("*")) / "site-packages"
+        sys.path = [str(site_packages), *sys.path]
 
         self._before_execute()
         content: bytes = self.execute_remote_code(code)
@@ -175,9 +171,7 @@ class Injector:
         return code
 
     @staticmethod
-    def _format_args(
-        args: Optional[Tuple[object, ...]], kwargs: Optional[Dict[str, object]]
-    ) -> str:
+    def _format_args(args: Optional[Tuple[object, ...]], kwargs: Optional[Dict[str, object]]) -> str:
         ret = ""
         if args:
             args_clean: str = ", ".join([str(a) for a in args])
@@ -216,9 +210,7 @@ class Injector:
 
     def klass(self, cls: type) -> type:
         cls._injector = self  # type: ignore
-        methods: List[str] = [
-            a for a in dir(cls) if not a.startswith("__") and callable(getattr(cls, a))
-        ]
+        methods: List[str] = [a for a in dir(cls) if not a.startswith("__") and callable(getattr(cls, a))]
 
         for m in methods:
 
@@ -250,9 +242,7 @@ class Injector:
 
     @staticmethod
     def _add_try_except(code: str) -> str:
-        ret = textwrap.indent(
-            code, "    "
-        )  # use tabs instead of spaces, easier to debug
+        ret = textwrap.indent(code, "    ")  # use tabs instead of spaces, easier to debug
         code_lines = ret.splitlines(True)
         code_lines.insert(0, "try:\n")
         except_block = """\nexcept Exception as __exc:\n    __exception = __exc\n"""
@@ -264,9 +254,7 @@ class Injector:
 
 
 class DjangoInjector(Injector):
-    def __init__(
-        self, address: str, django_settings_module: str, endpoint: str = "stickybeak/"
-    ) -> None:
+    def __init__(self, address: str, django_settings_module: str, endpoint: str = "stickybeak/") -> None:
         super().__init__(address=address, endpoint=endpoint)
         self.django_settings_module = django_settings_module
 

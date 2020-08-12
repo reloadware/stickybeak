@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.usefixtures("injector")
+@pytest.mark.usefixtures("injector", "flask_server", "django_server")
 class TestInjectors:
     def test_syntax_errors(self, injector):
         with pytest.raises(SyntaxError):

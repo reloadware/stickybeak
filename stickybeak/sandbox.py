@@ -16,8 +16,6 @@ def execute(__code: str) -> bytes:
 
     import pickle as pickle
 
-    ret: bytes = pickle.dumps(
-        results["__exception"] if "__exception" in results else results["__return"]
-    )
+    ret: bytes = pickle.dumps(results["__exception"] if "__exception" in results else results["__return"])
 
     return ret

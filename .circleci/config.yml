@@ -1,129 +1,194 @@
-defaults: &defaults
-  working_directory: /srv
-  docker:
-    - image: circleci/python:3.7
-      environment:
-        TEST_ENV: TEST_ENV_VALUE
-        DJANGO_SRV_HOSTNAME: localhost:8001
-        FLASK_SRV_HOST: localhost
-        FLASK_SRV_PORT: 8002
-
-restore_cache: &restore_cache
-  restore_cache:
-    name: "Restore cache"
-    key: deps9-{{ .Branch }}-{{ checksum "Pipfile.lock" }}
-
-version: 2.1
-jobs:
-  test-lib:
-    <<: *defaults
-    steps:
-      - run:
-          name: Init
-          command: sudo chown circleci:circleci /srv
-      - checkout
-      - run:
-          name: Bootstrap
-          command: ./bin/ci/bootstrap
-      - *restore_cache
-      - run:
-          name: Create workspace
-          command: mkdir -p workspace
-      - run:
-          name: Start services
-          command: ./bin/ci/start_services
-          background: true
-      - run:
-          name: Wait for services
-          command: ./bin/ci/wait_for_services.py
-      - run:
-          name: Run tests
-          command: ./bin/ci/test
-      - run:
-          name: Run mypy
-          command: ./bin/ci/mypy
-      - run:
-          name: Run rstcheck
-          command: ./bin/ci/rstcheck
-      - run:
-          name: Run flake8
-          command: ./bin/ci/flake8
-      - store_artifacts:
-          path: test-results
-          destination: artifacts
-      - store_test_results:
-          path: test-results
-      - persist_to_workspace:
-          root: workspace
-          paths:
-            - test-results
-
-  upload-codecov:
-    working_directory: /srv
-    docker:
-      - image: circleci/python:3.7
-    steps:
-      - run:
-          name: Init
-          command: sudo chown circleci:circleci /srv
-      - checkout
-      - run:
-          name: Create workspace
-          command: mkdir -p workspace
-      - attach_workspace:
-          at: workspace
-      - run:
-          name: Upload
-          command: |
-            curl -s https://codecov.io/bash | bash -s -- \
-            -t "${CODECOV_TOKEN}" \
-            -n "${CIRCLE_BUILD_NUM}" \
-            -y ".codecov.yml" \
-            -f "./workspace/test-results/coverage.xml" \
-            -Z || echo 'Codecov upload failed'
-
-  publish:
-    <<: *defaults
-    steps:
-      - run:
-          name: Init
-          command: sudo chown circleci:circleci /srv
-      - checkout
-      - *restore_cache
-      - run:
-          name: Install the packages
-          command: |
-            sudo pip install pipenv
-            sudo pipenv install -d --system
-      - run:
-          name: Build a package
-          command: ./bin/ci/build
-      - run:
-          name: Publish the package
-          command: ./bin/ci/publish
+version: 2.19
 
 workflows:
   version: 2
-  test-deploy:
+  test:
     jobs:
-      - test-lib:
+      - test-3-6
+      - test-3-7
+      - test-3-8
+      - check-black
+      - flake8
+      - mypy
+      - publish:
+          requires:
+            - flake8
+            - mypy
+            - check-black
+            - test-3-6
+            - test-3-7
+            - test-3-8
           filters:
+            branches:
+              only: master
             tags:
-                only: /.*/
+              only: /^[0-9]+(\.[0-9]+)*$/
       - upload-codecov:
           requires:
-            - test-lib
+            - publish
           filters:
             branches:
               only: master
             tags:
               only: /^[0-9]+(\.[0-9]+)*$/
 
-      - publish:
-          requires:
-            - test-lib
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^[0-9]+(\.[0-9]+)*$/
+defaults: &defaults
+  docker:
+    - image: circleci/python:3.8.2
+
+cache-key: &cache-key
+  deps-{{ .Branch }}-{{ .Environment.CIRCLE_JOB }}
+
+restore_cache: &restore_cache
+  restore_cache:
+    name: "Restore cache"
+    key: *cache-key
+
+save_cache: &save_cache
+  save_cache:
+    key: *cache-key
+    paths:
+     - .venv
+
+install_envo: &install_envo
+  run:
+    name: Install envo
+    command: python -m venv .venv && ./.venv/bin/pip install envo==0.9.0.8b0
+
+bootstrap: &bootstrap
+  run:
+    name: Bootstrap
+    command: bootstrap
+    shell: ./.venv/bin/envo ci
+
+
+jobs:
+  flake8:
+    <<: *defaults
+    steps:
+      - checkout
+      - *restore_cache
+      - *install_envo
+      - *bootstrap
+      - run:
+          name: Flake8
+          command: flake
+          shell: ./.venv/bin/envo ci
+      - *save_cache
+
+  mypy:
+    <<: *defaults
+    steps:
+      - checkout
+      - *restore_cache
+      - *install_envo
+      - *bootstrap
+      - run:
+          name: Mypy
+          command: mypy
+          shell: ./.venv/bin/envo ci
+      - *save_cache
+
+  check-black:
+    <<: *defaults
+    steps:
+      - checkout
+      - *restore_cache
+      - *install_envo
+      - *bootstrap
+      - run:
+          name: Black
+          command: check_black
+          shell: ./.venv/bin/envo ci
+      - *save_cache
+
+  test-3-6:
+    <<: *defaults
+    docker:
+      - image: circleci/python:3.6
+
+    steps:
+      - checkout
+      - *restore_cache
+      - *install_envo
+      - *bootstrap
+      - run:
+          name: Test
+          command: test
+          shell: ./.venv/bin/envo ci
+      - *save_cache
+
+  test-3-7:
+    <<: *defaults
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - checkout
+      - *restore_cache
+      - *install_envo
+      - *bootstrap
+      - run:
+          name: Test
+          command: test
+          shell: ./.venv/bin/envo ci
+      - *save_cache
+
+  test-3-8:
+    <<: *defaults
+    docker:
+      - image: circleci/python:3.8.2
+    steps:
+      - checkout
+      - *restore_cache
+      - *install_envo
+      - *bootstrap
+      - run:
+          name: Test
+          command: test
+          shell: ./.venv/bin/envo ci
+      - store_artifacts:
+          path: workspace
+          destination: artifacts
+      - store_test_results:
+          path: workspace
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - cov.xml
+      - *save_cache
+
+  publish:
+    <<: *defaults
+    steps:
+      - checkout
+      - *restore_cache
+      - *install_envo
+      - *bootstrap
+      - run:
+          name: Generate version
+          command: generate_version
+          shell: ./.venv/bin/envo ci
+      - run:
+          name: Build
+          command: build
+          shell: ./.venv/bin/envo ci
+      - run:
+          name: publish
+          command: publish
+          shell: ./.venv/bin/envo ci
+      - *save_cache
+
+  upload-codecov:
+    <<: *defaults
+    steps:
+      - checkout
+      - *restore_cache
+      - *install_envo
+      - *bootstrap
+      - attach_workspace:
+          at: workspace
+      - run:
+          name: Upload code-cov
+          command: upload_codecov
+          shell: ./.venv/bin/envo ci
+      - *save_cache

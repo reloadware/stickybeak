@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-set -xeuo pipefail
-
-pipenv run flake8 .
-git add -u

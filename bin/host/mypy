@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-set -xeuo pipefail
-
-pipenv run mypy .
-git add -u

@@ -25,6 +25,9 @@ class Injector:
     connected: bool
     stickybeak_dir: Path
 
+    _data: Dict[str, Dict[str, str]]  # server data like source or pip freeze requirements
+    _requirements: Dict[str, str]  # requirements extracted from _data
+
     def __init__(self, address: str, endpoint: str = "stickybeak/") -> None:
         """
         :param address: service address that's gonna be injected.
@@ -40,31 +43,19 @@ class Injector:
         self.stickybeak_dir = Path.home() / ".stickybeak" / Path(f"{self.name}_{project_hash}")
         self.stickybeak_dir = Path(str(self.stickybeak_dir).replace(":", "_"))
 
-        self._requirements: Dict[str, str] = {}
-        self._data: Dict[str, Dict[str, str]] = {}
+        self._requirements = {}
+        self._data = {}
         self.connected = False
 
     def connect(self) -> None:
-        self._get_data()
-
-        self._collect_remote_code()
-        self._collect_requirements()
-        self._collect_envs()
-
-        self.connected = True
-
-    def _raise_if_not_connected(self) -> None:
-        if not self.connected:
-            raise InjectorException("Injector not connected! Run connect() first.")
-
-    def _get_data(self) -> None:
+        # ########## Get data
         url = urljoin(self.endpoint, "data")
         response: requests.Response = requests.get(url)
         response.raise_for_status()
 
         self._data = json.loads(response.content)
 
-    def _collect_remote_code(self) -> None:
+        # ########## Collect remote code
         sources: Dict[str, str] = self._data["source"]
 
         if sources == {}:
@@ -77,9 +68,9 @@ class Injector:
             abs_path.touch()
             abs_path.write_text(source)
 
-    def _collect_requirements(self) -> None:
-        requirements: Dict[str, str] = self._data["requirements"]
-        requirements_path: Path = (self.stickybeak_dir / "requirements.txt").absolute()
+        # ########## collect requirements
+        requirements = self._data["requirements"]
+        requirements_path = (self.stickybeak_dir / "requirements.txt").absolute()
         if requirements_path.exists():
             if requirements_path.read_text() == requirements:
                 return
@@ -94,26 +85,19 @@ class Injector:
         python_path: Path = Path(sys.prefix) / "bin/python"  # type: ignore
 
         if not venv_dir.exists():
-            subprocess.run(f"{python_path} -m venv {venv_dir}", shell=True)
+            subprocess.check_output([f"{python_path}", "-m", "venv", f"{venv_dir}"], stderr=subprocess.DEVNULL)
 
         if self._requirements != requirements:
-            subprocess.run(f"{(venv_dir / 'bin/pip')} install -r {requirements_path}", shell=True)
+            subprocess.check_output(
+                [f"{(venv_dir / 'bin/pip')}", "install", "-r", f"{requirements_path}"], stderr=subprocess.DEVNULL
+            )
             self._requirements = requirements
 
-    def _collect_envs(self) -> os._Environ:  # type: ignore
-        envs: Dict[str, str] = self._data["envs"]
+        self.connected = True
 
-        environ = os._Environ(  # type: ignore
-            data=envs,
-            encodekey=lambda x: x,
-            decodekey=lambda x: x,
-            encodevalue=lambda x: x,
-            decodevalue=lambda x: x,
-            putenv=lambda k, v: None,
-            unsetenv=lambda k, v: None,
-        )
-
-        return environ
+    def _raise_if_not_connected(self) -> None:
+        if not self.connected:
+            raise InjectorException("Injector not connected! Run connect() first.")
 
     def execute_remote_code(self, code: str) -> bytes:
         url: str = urljoin(self.endpoint, "inject")

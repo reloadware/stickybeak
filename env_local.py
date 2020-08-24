@@ -41,5 +41,9 @@ class StickybeakEnv(StickybeakEnvComm):  # type: ignore
         self.flake()
         self.mypy()
 
+    @command
+    def test(self) -> None:
+        run("pytest -v tests")
+
 
 Env = StickybeakEnv

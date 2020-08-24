@@ -51,18 +51,27 @@ def injector(request, mocker):
         get_mock = mocker.patch("requests.get")
         get_mock.side_effect = mock_get
 
-        return DjangoInjector(address=request.param, django_settings_module="django_srv.settings")
+        injector = DjangoInjector(address=request.param, django_settings_module="django_srv.settings")
+        injector.connect()
+
+        return injector
 
     if request.param == env.django.hostname:
-        return DjangoInjector(address=request.param, django_settings_module="django_srv.settings")
+        injector = DjangoInjector(address=request.param, django_settings_module="django_srv.settings")
+        injector.connect()
+        return injector
 
     if request.param == env.flask.hostname:
-        return Injector(address=request.param)
+        injector = Injector(address=request.param)
+        injector.connect()
+        return injector
 
 
 @pytest.fixture(scope="class")
 def django_injector(request):
-    request.cls.injector = DjangoInjector(address=env.django.hostname, django_settings_module="django_srv.settings")
+    injector = DjangoInjector(address=env.django.hostname, django_settings_module="django_srv.settings")
+    injector.connect()
+    request.cls.injector = injector
 
 
 @pytest.fixture(scope="session")

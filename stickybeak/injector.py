@@ -12,9 +12,18 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 
+__all__ = ["InjectorException", "Injector", "DjangoInjector"]
+
+
+class InjectorException(Exception):
+    pass
+
 
 class Injector:
     """Provides interface for code injection."""
+
+    connected: bool
+    stickybeak_dir: Path
 
     def __init__(self, address: str, endpoint: str = "stickybeak/") -> None:
         """
@@ -28,16 +37,25 @@ class Injector:
 
         project_dir: Path = Path(".").absolute()
         project_hash = hashlib.sha1(str(project_dir).encode("utf-8")).hexdigest()[0:8]
-        self.stickybeak_dir: Path = Path.home() / ".stickybeak" / Path(f"{self.name}_{project_hash}")
+        self.stickybeak_dir = Path.home() / ".stickybeak" / Path(f"{self.name}_{project_hash}")
         self.stickybeak_dir = Path(str(self.stickybeak_dir).replace(":", "_"))
 
         self._requirements: Dict[str, str] = {}
         self._data: Dict[str, Dict[str, str]] = {}
+        self.connected = False
+
+    def connect(self) -> None:
         self._get_data()
 
         self._collect_remote_code()
         self._collect_requirements()
         self._collect_envs()
+
+        self.connected = True
+
+    def _raise_if_not_connected(self) -> None:
+        if not self.connected:
+            raise InjectorException("Injector not connected! Run connect() first.")
 
     def _get_data(self) -> None:
         url = urljoin(self.endpoint, "data")
@@ -118,6 +136,8 @@ class Injector:
         >>> injector: Injector = Injector('http://testedservice.local')
         >>> injector.run_code('a = 1')
         """
+        self._raise_if_not_connected()
+
         # we have to unload all the django modules so django accepts the new configuration
         # make a module copy so we can iterate over it and delete modules from the original one
         modules_before: List[str] = list(sys.modules.keys())[:]
@@ -189,6 +209,8 @@ class Injector:
         args: Optional[Tuple[object, ...]] = None,
         kwargs: Optional[Dict[str, object]] = None,
     ) -> object:
+        self._raise_if_not_connected()
+
         code: str = self._get_fun_src(fun)
         code += f"\n__return = {fun.__name__}{self._format_args(args, kwargs)}"
         code = self._add_try_except(code)
@@ -202,6 +224,8 @@ class Injector:
         args: Optional[Tuple[object, ...]] = None,
         kwargs: Optional[Dict[str, object]] = None,
     ) -> object:
+        self._raise_if_not_connected()
+
         code: str = textwrap.dedent(inspect.getsource(klass))
         code += f"\n__return = {klass.__name__}.{fun}{self._format_args(args, kwargs)}"
         code = self._add_try_except(code)

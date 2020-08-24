@@ -1,4 +1,8 @@
+from typing import Any, Dict
+
 import pytest
+
+from stickybeak import Injector, InjectorException
 
 
 @pytest.mark.usefixtures("injector", "flask_server", "django_server")
@@ -7,6 +11,26 @@ class TestInjectors:
         with pytest.raises(SyntaxError):
             ret: int = injector.run_code("a=1////2")
             assert ret == 0.5
+
+    def test_not_connected(self):
+        injector = Injector(address="some_addr")
+        with pytest.raises(InjectorException):
+            injector.run_code("a=1////2")
+
+    def test_cant_pickle_errors(self, injector):
+        @injector.function
+        def fun() -> Any:
+            import sys
+
+            return sys.modules
+
+        with pytest.raises(TypeError):
+            fun()
+
+    def test_run_code(self, injector):
+        ret: Dict[str, Any] = injector.run_code("a=5")
+        assert ret["a"] == 5
+        assert len(ret) == 1
 
     def test_function(self, injector):
         def fun() -> int:

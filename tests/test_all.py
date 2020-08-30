@@ -1,12 +1,56 @@
+import shutil
 from typing import Any, Dict
 
+import pip
 import pytest
 
 from stickybeak import Injector, InjectorException
+from stickybeak._priv import utils
 
 
 @pytest.mark.usefixtures("injector", "flask_server", "django_server")
 class TestInjectors:
+    def test_installs_missing_package(self, injector):
+        @injector.function
+        def get_loguru_version() -> str:
+            import loguru
+
+            return loguru.__version__
+
+        # install everything
+        injector.run_code("pass")
+        for p in utils.get_site_packges_from_venv(injector.stickybeak_dir / ".venv").glob("loguru*"):
+            shutil.rmtree(str(p))
+
+        ver = get_loguru_version()
+
+        assert ver == "0.5.1"
+
+    def test_installs_upgrade(self, injector):
+        @injector.function
+        def get_loguru_version() -> str:
+            import loguru
+
+            return loguru.__version__
+
+        # install everything
+        injector.run_code("pass")
+        for p in utils.get_site_packges_from_venv(injector.stickybeak_dir / ".venv").glob("loguru*"):
+            shutil.rmtree(str(p))
+
+        ret = pip.main(
+            [
+                "install",
+                f"--target={str(utils.get_site_packges_from_venv(injector.stickybeak_dir / '.venv'))}",
+                "loguru==0.5.0",
+            ]
+        )
+        assert ret == 0
+
+        # should upgrade
+        ver = get_loguru_version()
+        assert ver == "0.5.1"
+
     def test_syntax_errors(self, injector):
         with pytest.raises(SyntaxError):
             ret: int = injector.run_code("a=1////2")
@@ -127,6 +171,17 @@ class TestInjectors:
             return stopwatch
 
         assert type(fun()).__name__ == "Stopwatch"
+
+    def test_string_passed(self, injector):
+        # Bug reproduction
+        @injector.klass
+        class Klass2:
+            @classmethod
+            def fun(cls, test_str: str) -> str:
+                return test_str + "_added"
+
+        assert Klass2.fun(test_str="value") == "value_added"
+        assert Klass2.fun("value") == "value_added"
 
 
 @pytest.mark.usefixtures("django_injector")

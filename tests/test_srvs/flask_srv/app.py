@@ -1,6 +1,12 @@
+import os
+from pathlib import Path
+
 from flask import Flask
 
-from stickybeak.flask_view import setup
+import stickybeak
+
+stickybeak.Server(project_root=Path(os.getcwd()), port=5884).run()
+
 
 app = Flask(__name__)
-setup(app)
+app.run()

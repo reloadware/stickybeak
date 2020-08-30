@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple  # noqa: F401
 
 import envo
-from envo import VirtualEnv, command, run
+from envo import Raw, VirtualEnv, command, run
 from envo import oncreate  # noqa: F401
 from loguru import logger  # noqa: F401
 
@@ -20,9 +20,12 @@ class StickybeakEnvComm(VirtualEnv, envo.Env):
 
     # Declare your variables here
 
+    test_env: Raw[str]
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
+        self.test_env = "TEST_ENV_VALUE"
         # Define your variables here
 
     @command

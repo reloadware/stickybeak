@@ -37,8 +37,8 @@ class EnvComm(
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        self.flask = self.App(port=8802, host="localhost")
-        self.django = self.App(port=8801, host="localhost")
+        self.django = self.App(port=5883, host="localhost")
+        self.flask = self.App(port=5884, host="localhost")
 
         # Define your variables here
 

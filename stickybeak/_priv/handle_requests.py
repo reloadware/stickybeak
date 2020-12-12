@@ -6,7 +6,12 @@ from typing import Dict, List, Optional
 
 from stickybeak._priv import sandbox, utils
 from stickybeak._priv.pip._internal.operations import freeze  # type: ignore
-
+from stickybeak._priv.pip._internal.utils.misc import (
+    dist_is_editable,
+    get_installed_distributions,
+    tabulate,
+    write_output,
+)
 
 def inject(data: Dict[str, str]) -> bytes:
     code: str = data["code"]
@@ -25,7 +30,7 @@ def get_source(project_dir: Path) -> Dict[str, str]:
     for p in glob.iglob(str(project_dir) + "/**/*.py", recursive=True):
         path: Path = Path(p)
         rel_path: str = str(path.relative_to(project_dir))
-        source_code[rel_path] = path.read_text()
+        source_code[rel_path] = path.read_text("utf-8")
 
     return source_code
 
@@ -38,11 +43,11 @@ def get_requirements(venv_path: Optional[Path] = None) -> Dict[str, str]:
 
     cleared_reqs: Dict[str, str] = {}
 
-    for r in freeze.freeze(
-        paths=paths, exclude_editable=True, skip=["stickybeak", "pip", "pkg-resources", "setuptools"]
+    for r in get_installed_distributions(
+        paths=paths, skip=["stickybeak", "pip", "pkg-resources", "setuptools", "packaging"], local_only=False
     ):
-        name: str = r.split("==")[0]
-        version: str = r.split("==")[1]
+        name: str = r.project_name
+        version: str = r.version
         cleared_reqs[name] = version
 
     return cleared_reqs

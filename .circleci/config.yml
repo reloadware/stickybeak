@@ -53,7 +53,7 @@ save_cache: &save_cache
 install_envo: &install_envo
   run:
     name: Install envo
-    command: python -m venv .venv && ./.venv/bin/pip install envo==0.9.0.8b0
+    command: python -m venv .venv && ./.venv/bin/pip install envo==0.9.1.1b0
 
 bootstrap: &bootstrap
   run:

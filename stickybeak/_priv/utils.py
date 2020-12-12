@@ -39,7 +39,7 @@ class Client:
         joined_url = urljoin(self.base_url, url)
         response: Response = self._retry_session.get(joined_url)
         response.raise_for_status()
-        return json.loads(response.content)
+        return json.loads(response.content or "null")
 
     def post(self, url: str, data: Dict[str, Any]) -> Response:
         joined_url = urljoin(self.base_url, url)
@@ -50,4 +50,7 @@ class Client:
 
 
 def get_site_packges_from_venv(venv: Path) -> Path:
-    return next((venv / "lib").glob("*")) / "site-packages"
+    ret = next((venv / "lib").glob("*"))
+    if ret.name != "site-packages":
+        ret /= "site-packages"
+    return  ret

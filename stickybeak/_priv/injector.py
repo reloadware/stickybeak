@@ -1,6 +1,7 @@
 import hashlib
 import inspect
 import os
+import shutil
 from pathlib import Path
 import pickle
 import subprocess
@@ -37,12 +38,11 @@ class Injector:
         self.address: str = address
         self._client = Client(self.address)
 
-        self.name: str = urlparse(self.address).netloc
+        self.name: str = urlparse(self.address).netloc.replace(":", "_")
 
         project_dir: Path = Path(".").absolute()
         project_hash = hashlib.sha1(str(project_dir).encode("utf-8")).hexdigest()[0:8]
         self.stickybeak_dir = Path.home() / ".stickybeak" / Path(f"{self.name}_{project_hash}")
-        self.stickybeak_dir = Path(str(self.stickybeak_dir).replace(":", "_"))
 
         self._data = {}
         self.connected = False
@@ -63,7 +63,7 @@ class Injector:
 
             abs_path.parent.mkdir(parents=True, exist_ok=True)
             abs_path.touch()
-            abs_path.write_text(source)
+            abs_path.write_text(source,"utf-8")
 
         # ########## collect requirements
 
@@ -78,8 +78,17 @@ class Injector:
         reqs_diff = {p: v for p, v in remote_reqs.items() if p not in local_reqs or local_reqs[p] != remote_reqs[p]}
 
         if reqs_diff:
+            # delete packages manualy (sometimes pip doesn't downgrade for some reason)
+            site_packages = utils.get_site_packges_from_venv(venv_dir)
+
+            for r in reqs_diff.keys():
+                shutil.rmtree(str((site_packages/r)), ignore_errors=True)
+                dist_info = next((site_packages.glob(f"{r}-*.dist-info")), None)
+                if dist_info:
+                    shutil.rmtree(str(dist_info), ignore_errors=True)
+
             reqs = [f"{p}=={v}" for p, v in reqs_diff.items()]
-            pip.main(["install", f"--target={str(utils.get_site_packges_from_venv(venv_dir))}", *reqs])
+            ret = pip.main(["install", f"--target={str(site_packages)}", "--no-cache", *reqs])
 
         self.connected = True
 

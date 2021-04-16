@@ -1,8 +1,10 @@
 import atexit
+import signal
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import BytesIO
 import json
 from pathlib import Path
+import dill as pickle
 from threading import Thread
 
 from stickybeak._priv import handle_requests
@@ -27,7 +29,7 @@ class Server(Thread):
                 self.send_response(200)
                 self.end_headers()
 
-                data = json.loads(body)
+                data = pickle.loads(body)
                 response = BytesIO()
                 response.write(handle_requests.inject(data))
                 self.wfile.write(response.getvalue())
@@ -62,3 +64,6 @@ class Server(Thread):
         atexit.register(self.exit)
         self.httpd.serve_forever()
         self.httpd.server_close()
+
+    def is_running(self) -> bool:
+        return self.is_alive()

@@ -41,10 +41,10 @@ class Client:
         response.raise_for_status()
         return json.loads(response.content or "null")
 
-    def post(self, url: str, data: Dict[str, Any]) -> Response:
+    def post(self, url: str, data: bytes) -> Response:
         joined_url = urljoin(self.base_url, url)
 
-        response: Response = self._session.post(joined_url, json=data, timeout=60)
+        response: Response = self._session.post(joined_url, data=data, timeout=60)
         response.raise_for_status()
         return response
 

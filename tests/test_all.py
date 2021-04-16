@@ -1,8 +1,10 @@
 import shutil
+from pickle import PicklingError
 from typing import Any, Dict
 
 import pip
 import pytest
+from pytest import raises
 
 from stickybeak import Injector, InjectorException
 from stickybeak._priv import utils
@@ -17,8 +19,6 @@ class TestInjectors:
 
             return loguru.__version__
 
-        # install everything
-        injector.run_code("pass")
         for p in utils.get_site_packges_from_venv(injector.stickybeak_dir / ".venv").glob("loguru*"):
             shutil.rmtree(str(p))
 
@@ -33,8 +33,6 @@ class TestInjectors:
 
             return loguru.__version__
 
-        # install everything
-        injector.run_code("pass")
         for p in utils.get_site_packges_from_venv(injector.stickybeak_dir / ".venv").glob("loguru*"):
             shutil.rmtree(str(p))
 
@@ -52,29 +50,23 @@ class TestInjectors:
         assert ver == "0.5.1"
 
     def test_syntax_errors(self, injector):
+        @injector.function
+        def fun() -> Any:
+            exec("a=1////2")
+
         with pytest.raises(SyntaxError):
-            ret: int = injector.run_code("a=1////2")
+            ret = fun()
             assert ret == 0.5
 
     def test_not_connected(self):
         injector = Injector(address="some_addr")
-        with pytest.raises(InjectorException):
-            injector.run_code("a=1////2")
 
-    def test_cant_pickle_errors(self, injector):
         @injector.function
         def fun() -> Any:
-            import sys
+            return "cake"
 
-            return sys.modules
-
-        with pytest.raises(TypeError):
+        with pytest.raises(InjectorException):
             fun()
-
-    def test_run_code(self, injector):
-        ret: Dict[str, Any] = injector.run_code("a=5")
-        assert ret["a"] == 5
-        assert len(ret) == 1
 
     def test_function(self, injector):
         def fun() -> int:
@@ -110,6 +102,17 @@ class TestInjectors:
             return a + b + d + e + x
 
         assert fun(5, 6, x=2) == 18
+
+    def test_datetime(self, injector):
+        @injector.function
+        def fun(date) -> int:
+            from datetime import datetime
+            ret = datetime(date.year+1, date.month, date.day, date.hour, date.minute, date.second)
+            return ret
+
+        from datetime import datetime
+
+        assert fun(datetime(2020, 1, 1, 12, 0, 0)) == datetime(2021, 1, 1, 12, 0, 0)
 
     def test_arguments_default(self, injector):
         @injector.function
@@ -184,7 +187,7 @@ class TestInjectors:
         assert Klass2.fun("value") == "value_added"
 
 
-@pytest.mark.usefixtures("django_injector")
+@pytest.mark.usefixtures("django_injector", "django_server")
 class TestDjango:
     def test_accessing_fields(self):
         @self.injector.function
@@ -201,3 +204,17 @@ class TestDjango:
         ret: object = fun()
         assert ret.name == "test_currency"
         assert ret.endpoint == "test_endpoint"
+
+
+@pytest.mark.usefixtures("django_server", "django_injector_no_download")
+class TestNoDownload:
+    def test_no_download(self):
+        @self.injector.function
+        def fun() -> int:
+            a = 5
+            b = 3
+            c = a + b
+            return c
+
+        with raises(ModuleNotFoundError):
+            ret: int = fun()

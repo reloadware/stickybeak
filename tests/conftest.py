@@ -4,6 +4,7 @@ import signal
 import subprocess
 import sys
 import time
+import dill as pickle
 from typing import Any, Dict
 
 from furl import furl
@@ -25,8 +26,8 @@ local_srv: str = "http://local-mock"
 def injector(request, mocker):
     if request.param == local_srv:
 
-        def mock_post(endpoint: str, json: Dict[str, Any], *args, **kwargs) -> Response:
-            result: bytes = handle_requests.inject(json)
+        def mock_post(endpoint: str, data: bytes, *args, **kwargs) -> Response:
+            result: bytes = handle_requests.inject(pickle.loads(data))
             response = Response()
             response._content = result
             response.status_code = 200
@@ -97,3 +98,18 @@ def django_server():
     yield
     p.send_signal(signal.SIGINT)
     p.kill()
+
+
+@pytest.fixture(scope="class")
+def django_injector(request):
+    injector = DjangoInjector(address=env.django.hostname, django_settings_module="django_srv.settings")
+    injector.connect()
+    request.cls.injector = injector
+
+
+@pytest.fixture(scope="class")
+def django_injector_no_download(request):
+    injector = DjangoInjector(address=env.django.hostname, django_settings_module="django_srv.settings",
+                              download_deps=False)
+    injector.connect()
+    request.cls.injector = injector

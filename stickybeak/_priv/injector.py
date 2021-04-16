@@ -2,17 +2,21 @@ import hashlib
 import inspect
 import os
 import shutil
+import trace
 from pathlib import Path
-import pickle
+import dill as pickle
 import subprocess
 import sys
 import textwrap
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
+from time import sleep
+
 from stickybeak._priv import pip, utils
 from stickybeak._priv.handle_requests import get_requirements
 from stickybeak._priv.utils import Client
+from threading import Thread
 
 __all__ = ["InjectorException", "Injector", "DjangoInjector"]
 
@@ -30,12 +34,13 @@ class Injector:
     _client: Client
     _data: Dict[str, Dict[str, str]]  # server data like source or pip freeze requirements
 
-    def __init__(self, address: str) -> None:
+    def __init__(self, address: str, download_deps: bool = True) -> None:
         """
         :param address: service address that's gonna be injected.
         :param endpoint:
         """
         self.address: str = address
+        self._download_deps = download_deps
         self._client = Client(self.address)
 
         self.name: str = urlparse(self.address).netloc.replace(":", "_")
@@ -47,26 +52,48 @@ class Injector:
         self._data = {}
         self.connected = False
 
-    def connect(self) -> None:
-        # ########## Get data
+    def connect(self, blocking: bool = True) -> None:
+        def target():
 
-        self._data = self._client.get("")
+            # ########## Get data
 
-        # ########## Collect remote code
-        sources: Dict[str, str] = self._data["source"]
+            self._data = self._client.get("")
 
-        if sources == {}:
-            raise RuntimeError("Couldn't find any source files (*.py).")
+            # ########## Collect remote code
+            sources: Dict[str, str] = self._data["source"]
 
-        for path, source in sources.items():
-            abs_path: Path = self.stickybeak_dir / Path(path)
+            if sources == {}:
+                raise RuntimeError("Couldn't find any source files (*.py).")
 
-            abs_path.parent.mkdir(parents=True, exist_ok=True)
-            abs_path.touch()
-            abs_path.write_text(source,"utf-8")
+            for path, source in sources.items():
+                abs_path: Path = self.stickybeak_dir / Path(path)
 
-        # ########## collect requirements
+                abs_path.parent.mkdir(parents=True, exist_ok=True)
+                abs_path.touch()
+                abs_path.write_text(source,"utf-8")
 
+            # ########## collect requirements
+            if self._download_deps:
+                self._do_download_deps()
+
+            self.connected = True
+
+        if blocking:
+            target()
+        else:
+            Thread(target=target).start()
+
+    def wait_until_connected(self, timeout=5) -> None:
+        waited = 0.0
+        one_sleep = 0.1
+        while not self.connected:
+            sleep(one_sleep)
+            waited += one_sleep
+
+            if waited >= timeout:
+                raise TimeoutError
+
+    def _do_download_deps(self):
         venv_dir = (self.stickybeak_dir / ".venv").absolute()
 
         if not venv_dir.exists():
@@ -80,31 +107,19 @@ class Injector:
         if reqs_diff:
             # delete packages manualy (sometimes pip doesn't downgrade for some reason)
             site_packages = utils.get_site_packges_from_venv(venv_dir)
-
-            for r in reqs_diff.keys():
-                shutil.rmtree(str((site_packages/r)), ignore_errors=True)
-                dist_info = next((site_packages.glob(f"{r}-*.dist-info")), None)
-                if dist_info:
-                    shutil.rmtree(str(dist_info), ignore_errors=True)
-
             reqs = [f"{p}=={v}" for p, v in reqs_diff.items()]
-            ret = pip.main(["install", f"--target={str(site_packages)}", "--no-cache", *reqs])
-
-        self.connected = True
+            ret = pip.main(["install", f"--target={str(site_packages)}", "--upgrade", *reqs])
 
     def _raise_if_not_connected(self) -> None:
         if not self.connected:
             raise InjectorException("Injector not connected! Run connect() first.")
 
-    def run_code(self, code: str) -> object:
+    def _run_remote_fun(self, source: str, call: str, args: Tuple[Any], kwargs: Dict[str, Any]) -> object:
         """Execute code.
         Returns:
             Dictionary containing all local variables.
         Raises:
             All exceptions from the code run remotely.
-        Sample usage.
-        >>> injector: Injector = Injector('http://testedservice.local')
-        >>> injector.run_code('a = 1')
         """
         self._raise_if_not_connected()
 
@@ -122,11 +137,19 @@ class Injector:
         sys.path.pop(0)
         sys.path.insert(0, str(self.stickybeak_dir.absolute()))
 
-        site_packages = utils.get_site_packges_from_venv(self.stickybeak_dir.absolute() / ".venv")
-        sys.path = [str(site_packages), *sys.path]
+        if self._download_deps:
+            site_packages = utils.get_site_packges_from_venv(self.stickybeak_dir.absolute() / ".venv")
+            sys.path = [str(site_packages), *sys.path]
 
         self._before_execute()
-        content: bytes = self._client.post("", data={"code": code}).content
+        data = {
+            "source": source,
+            "call": call,
+            "args": args,
+            "kwargs": kwargs
+        }
+        pickled_data = pickle.dumps(data)
+        content: bytes = self._client.post("", data=pickled_data).content
         ret: object = pickle.loads(content)
 
         os.environ = envs_before
@@ -160,51 +183,29 @@ class Injector:
         code = textwrap.dedent(code)
         return code
 
-    @staticmethod
-    def _format_args(args: Optional[Tuple[object, ...]], kwargs: Optional[Dict[str, object]]) -> str:
-        def format_val(val: Any) -> Any:
-            if isinstance(val, str):
-                return f'"{val}"'
-            return str(val)
-
-        ret = ""
-        if args:
-            args_clean: str = ", ".join([format_val(a) for a in args])
-            ret += args_clean
-
-        if kwargs:
-            kwargs_clean: str = ", ".join([f"{str(k)}={format_val(v)}" for k, v in kwargs.items()])
-            ret += (", " if args else "") + kwargs_clean
-
-        return f"({ret})"
-
     def run_fun(
         self,
-        fun: Callable[[], None],
-        args: Optional[Tuple[object, ...]] = None,
-        kwargs: Optional[Dict[str, object]] = None,
+        fun: Callable,
+        *args: Tuple[Any],
+        **kwargs: Dict[str, Any],
     ) -> object:
         self._raise_if_not_connected()
 
-        code: str = self._get_fun_src(fun)
-        code += f"\n__return = {fun.__name__}{self._format_args(args, kwargs)}"
-        code = self._add_try_except(code)
-        ret = self.run_code(code)
+        source: str = self._get_fun_src(fun)
+        ret = self._run_remote_fun(source, call=fun.__name__, args=args, kwargs=kwargs)
         return ret
 
     def run_klass_fun(
         self,
         klass: type,
-        fun: str,
-        args: Optional[Tuple[object, ...]] = None,
-        kwargs: Optional[Dict[str, object]] = None,
+        fun: Callable,
+        args: Tuple[Any],
+        kwargs: Dict[str, Any],
     ) -> object:
         self._raise_if_not_connected()
 
-        code: str = textwrap.dedent(inspect.getsource(klass))
-        code += f"\n__return = {klass.__name__}.{fun}{self._format_args(args, kwargs)}"
-        code = self._add_try_except(code)
-        ret = self.run_code(code)
+        source: str = textwrap.dedent(inspect.getsource(klass))
+        ret = self._run_remote_fun(source, call=f"{klass.__name__}.{fun.__name__}", args=args, kwargs=kwargs)
         return ret
 
     def klass(self, cls: type) -> type:
@@ -216,7 +217,7 @@ class Injector:
             def decorator(func: Callable[[], None]) -> Callable:
                 def wrapped(*args: object, **kwargs: object) -> object:
                     return cls._injector.run_klass_fun(  # type: ignore
-                        cls, func.__name__, args, kwargs
+                        cls, func, args, kwargs
                     )
 
                 return wrapped
@@ -233,28 +234,16 @@ class Injector:
         :return decorated function:
         """
 
-        def wrapped(*args: object, **kwargs: object) -> object:
-            ret = self.run_fun(fun, args, kwargs)
+        def wrapped(*args: Any, **kwargs: Any) -> object:
+            ret = self.run_fun(fun, *args, **kwargs)
             return ret
 
         return wrapped
 
-    @staticmethod
-    def _add_try_except(code: str) -> str:
-        ret = textwrap.indent(code, "    ")  # use tabs instead of spaces, easier to debug
-        code_lines = ret.splitlines(True)
-        code_lines.insert(0, "try:\n")
-        except_block = """\nexcept Exception as __exc:\n    __exception = __exc\n"""
-
-        code_lines.append(except_block)
-
-        ret = "".join(code_lines)
-        return ret
-
 
 class DjangoInjector(Injector):
-    def __init__(self, address: str, django_settings_module: str) -> None:
-        super().__init__(address=address)
+    def __init__(self, address: str, django_settings_module: str, download_deps: bool = True) -> None:
+        super().__init__(address=address, download_deps=download_deps)
         self.django_settings_module = django_settings_module
 
     def _before_execute(self) -> None:

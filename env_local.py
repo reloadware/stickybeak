@@ -9,7 +9,7 @@ from envo import (  # noqa: F401
     boot_code,
     command,
     context,
-    dataclass,
+    Namespace,
     logger,
     oncreate,
     ondestroy,
@@ -20,17 +20,16 @@ from envo import (  # noqa: F401
     postcmd,
     precmd,
     run,
+    UserEnv
 )
 
 # Declare your command namespaces here
 # like this:
-# my_namespace = command(namespace="my_namespace")
 
-localci = command(namespace="localci")
+localci = Namespace(name="localci")
 
 
-@dataclass
-class StickybeakLocalEnv(envo.Env):  # type: ignore
+class StickybeakLocalEnv(UserEnv):  # type: ignore
     class Meta(envo.Env.Meta):  # type: ignore
         root = Path(__file__).parent.absolute()
         stage: str = "local"
@@ -44,10 +43,9 @@ class StickybeakLocalEnv(envo.Env):  # type: ignore
 
     # Declare your variables here
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-
+    def __init__(self) -> None:
         # Define your variables here
+        ...
 
     @command
     def flake(self) -> None:
@@ -76,7 +74,7 @@ class StickybeakLocalEnv(envo.Env):  # type: ignore
     def test(self) -> None:
         run("pytest -v tests")
 
-    @localci
+    @localci.command
     def __flake(self) -> None:
         run("circleci local execute --job flake8")
 

@@ -9,7 +9,6 @@ from envo import (  # noqa: F401
     boot_code,
     command,
     context,
-    dataclass,
     logger,
     oncreate,
     ondestroy,
@@ -20,6 +19,7 @@ from envo import (  # noqa: F401
     postcmd,
     precmd,
     run,
+    UserEnv
 )
 
 # Declare your command namespaces here
@@ -27,8 +27,7 @@ from envo import (  # noqa: F401
 # my_namespace = command(namespace="my_namespace")
 
 
-@dataclass
-class StickybeakCommEnv(envo.Env):  # type: ignore
+class StickybeakCommEnv(UserEnv):  # type: ignore
     class Meta(envo.Env.Meta):  # type: ignore
         root = Path(__file__).parent.absolute()
         stage: str = "comm"
@@ -42,10 +41,9 @@ class StickybeakCommEnv(envo.Env):  # type: ignore
 
     # Declare your variables here
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-
+    def __init__(self) -> None:
         # Define your variables here
+        ...
 
     @command
     def bootstrap(self) -> None:

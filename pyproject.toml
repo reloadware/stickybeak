@@ -14,7 +14,7 @@ classifiers = [
 homepage = "https://github.com/dkrystki/stickybeak"
 
 [tool.poetry.dependencies]
-python = "^3.6.1"
+python = ">=3.6.1, <4.0"
 requests = "^2.24.0"
 virtualenv = "^20.0.31"
 django = "*"
@@ -30,7 +30,6 @@ mypy = "0.770"
 flake8-import-order = "^0.18.1"
 isort = "^5.3.2"
 black = "^19.10b0"
-envo = "0.9.1.8b"
 toml = "^0.10.1"
 furl = "^2.1.0"
 pytest-env = "^0.6.2"

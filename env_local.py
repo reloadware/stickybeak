@@ -35,9 +35,9 @@ class StickybeakLocalEnv(UserEnv):  # type: ignore
         stage: str = "local"
         emoji: str = "🐣"
         parents: List[str] = ["env_comm.py"]
-        plugins: List[Plugin] = []
         name: str = "stickybeak"
         version: str = "0.1.0"
+        plugins: List[Plugin] = []
         watch_files: List[str] = []
         ignore_files: List[str] = []
 

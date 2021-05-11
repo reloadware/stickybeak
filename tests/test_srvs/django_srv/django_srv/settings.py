@@ -18,6 +18,7 @@ from pathlib import Path
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+os.environ["TEST_ENV"] = "TEST_ENV_VALUE"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -111,5 +112,3 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 
-
-TEST_ENV = os.environ["TEST_ENV"]

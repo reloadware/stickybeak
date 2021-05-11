@@ -5,19 +5,19 @@ workflows:
   test:
     jobs:
       - test-3-6
-      - test-3-7
-      - test-3-8
-      - check-black
+#      - test-3-7
+#      - test-3-8
+#      - check-black
 #      - flake8
 #      - mypy
       - publish:
           requires:
 #            - flake8
 #            - mypy
-            - check-black
+#            - check-black
             - test-3-6
-            - test-3-7
-            - test-3-8
+#            - test-3-7
+#            - test-3-8
           filters:
             branches:
               only: master
@@ -35,6 +35,8 @@ workflows:
 defaults: &defaults
   docker:
     - image: circleci/python:3.8.2
+  environment:
+    CRYPTOGRAPHY_DONT_BUILD_RUST: 1
 
 cache-key: &cache-key
   deps-{{ .Branch }}-{{ .Environment.CIRCLE_JOB }}
@@ -49,17 +51,19 @@ save_cache: &save_cache
     key: *cache-key
     paths:
      - .venv
+     - tests/test_srvs/django_srv/.venv
+     - tests/test_srvs/flask_srv/.venv
 
 install_envo: &install_envo
   run:
     name: Install envo
-    command: python -m venv .venv && ./.venv/bin/pip install envo==0.9.4.15b
+    command: pip install envo==0.9.4.16b
 
 bootstrap: &bootstrap
   run:
     name: Bootstrap
     command: bootstrap
-    shell: ./.venv/bin/envo ci
+    shell: envo ci
 
 
 jobs:
@@ -73,7 +77,7 @@ jobs:
       - run:
           name: Flake8
           command: flake
-          shell: ./.venv/bin/envo ci
+          shell: envo ci
       - *save_cache
 
   mypy:
@@ -86,7 +90,7 @@ jobs:
       - run:
           name: Mypy
           command: mypy
-          shell: ./.venv/bin/envo ci
+          shell: envo ci
       - *save_cache
 
   check-black:
@@ -99,7 +103,7 @@ jobs:
       - run:
           name: Black
           command: check_black
-          shell: ./.venv/bin/envo ci
+          shell: envo ci
       - *save_cache
 
   test-3-6:
@@ -115,7 +119,16 @@ jobs:
       - run:
           name: Test
           command: test
-          shell: ./.venv/bin/envo ci
+          shell: envo ci
+      - store_artifacts:
+          path: workspace
+          destination: artifacts
+      - store_test_results:
+          path: workspace
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - cov.xml
       - *save_cache
 
   test-3-7:
@@ -130,7 +143,16 @@ jobs:
       - run:
           name: Test
           command: test
-          shell: ./.venv/bin/envo ci
+          shell: envo ci
+      - store_artifacts:
+          path: workspace
+          destination: artifacts
+      - store_test_results:
+          path: workspace
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - cov.xml
       - *save_cache
 
   test-3-8:
@@ -145,7 +167,7 @@ jobs:
       - run:
           name: Test
           command: test
-          shell: ./.venv/bin/envo ci
+          shell: envo ci
       - store_artifacts:
           path: workspace
           destination: artifacts
@@ -167,15 +189,15 @@ jobs:
       - run:
           name: Generate version
           command: generate_version
-          shell: ./.venv/bin/envo ci
+          shell: envo ci
       - run:
           name: Build
           command: build
-          shell: ./.venv/bin/envo ci
+          shell: envo ci
       - run:
           name: publish
           command: publish
-          shell: ./.venv/bin/envo ci
+          shell: envo ci
       - *save_cache
 
   upload-codecov:
@@ -190,5 +212,5 @@ jobs:
       - run:
           name: Upload code-cov
           command: upload_codecov
-          shell: ./.venv/bin/envo ci
+          shell: envo ci
       - *save_cache

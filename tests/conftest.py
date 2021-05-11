@@ -1,78 +1,58 @@
-import json
 import os
 import signal
 import subprocess
-import sys
-import time
-import dill as pickle
-from typing import Any, Dict
-
-from furl import furl
-import pytest
-import requests
-from requests import Response
-
-from stickybeak import DjangoInjector, Injector
-from stickybeak._priv import handle_requests
+from pytest import fixture
 
 from .env_test import Env
+from . import utils
+
+from stickybeak import DjangoInjector, Injector
 
 env = Env()
 
-local_srv: str = "http://local-mock"
+
+@fixture
+def mock_injector():
+    mock_injector = utils.MockInjector(address="http://local-mock")
+    mock_injector.mock()
+    mock_injector.connect()
+
+    yield mock_injector
+
+    mock_injector.unmock()
 
 
-@pytest.fixture(params=[local_srv, env.django.hostname, env.flask.hostname])
-def injector(request, mocker):
-    if request.param == local_srv:
-
-        def mock_post(endpoint: str, data: bytes, *args, **kwargs) -> Response:
-            result: bytes = handle_requests.inject(pickle.loads(data))
-            response = Response()
-            response._content = result
-            response.status_code = 200
-            return response
-
-        def mock_get(endpoint: str, *args, **kwargs) -> Response:
-            url: furl = furl(endpoint)
-            response = Response()
-
-            data: Dict[str, Dict[str, str]] = handle_requests.get_data(env.root / "test_srvs/django_srv")
-            response._content = json.dumps(data)
-
-            response.status_code = 200
-            return response
-
-        post_mock = mocker.patch("stickybeak._priv.utils.Session.post")
-        post_mock.side_effect = mock_post
-
-        get_mock = mocker.patch("stickybeak._priv.utils.Session.get")
-        get_mock.side_effect = mock_get
-
-        injector = DjangoInjector(address=request.param, django_settings_module="django_srv.settings")
-        injector.connect()
-
-        return injector
-
-    if request.param == env.django.hostname:
-        injector = DjangoInjector(address=request.param, django_settings_module="django_srv.settings")
-        injector.connect()
-        return injector
-
-    if request.param == env.flask.hostname:
-        injector = Injector(address=request.param)
-        injector.connect()
-        return injector
-
-
-@pytest.fixture(scope="class")
-def django_injector(request):
+@fixture
+def django_injector():
     injector = DjangoInjector(address=env.django.hostname, django_settings_module="django_srv.settings")
     injector.connect()
-    request.cls.injector = injector
+    return injector
 
 
-@pytest.fixture(scope="session")
+@fixture
+def flask_injector():
+    injector = utils.Injector(address=env.flask.hostname)
+    injector.connect()
+    return injector
+
+
+@fixture
+def django_injector_no_download():
+    django_injector_no_download = DjangoInjector(address=env.django.hostname, django_settings_module="django_srv.settings",
+                                                 download_deps=False)
+    django_injector_no_download.connect()
+
+    return django_injector_no_download
+
+
+@fixture
+def django_injector_not_connected():
+    django_injector_no_download = DjangoInjector(address=env.django.hostname, django_settings_module="django_srv.settings",
+                                                 download_deps=False)
+    return django_injector_no_download
+
+
+@fixture(scope="session", autouse=True)
 def flask_server():
     srv_dir = env.root / "test_srvs/flask_srv"
     bin_path = srv_dir / ".venv/bin"
@@ -86,7 +66,7 @@ def flask_server():
     p.kill()
 
 
-@pytest.fixture(scope="session")
+@fixture(scope="session", autouse=True)
 def django_server():
     srv_dir = env.root / "test_srvs/django_srv"
     hostname = "localhost:8336"
@@ -100,16 +80,3 @@ def django_server():
     p.kill()
 
 
-@pytest.fixture(scope="class")
-def django_injector(request):
-    injector = DjangoInjector(address=env.django.hostname, django_settings_module="django_srv.settings")
-    injector.connect()
-    request.cls.injector = injector
-
-
-@pytest.fixture(scope="class")
-def django_injector_no_download(request):
-    injector = DjangoInjector(address=env.django.hostname, django_settings_module="django_srv.settings",
-                              download_deps=False)
-    injector.connect()
-    request.cls.injector = injector

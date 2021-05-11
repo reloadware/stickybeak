@@ -1,3 +1,5 @@
+import os
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple  # noqa: F401
 
@@ -40,13 +42,36 @@ class StickybeakCommEnv(UserEnv):  # type: ignore
         plugins: List[Plugin] = [VirtualEnv]
 
     # Declare your variables here
+    test_dir: Path
+    test_srvs_dir: Path
+    django_srv_dir: Path
+    flask_srv_dir: Path
+    pip_version: str
+    poetry_version: str
 
     def __init__(self) -> None:
         # Define your variables here
-        ...
+        self.test_dir = self.root / "tests"
+        self.test_srvs_dir = self.test_dir / "test_srvs"
+        self.django_srv_dir = self.test_srvs_dir / "django_srv"
+        self.flask_srv_dir = self.test_srvs_dir / "flask_srv"
+        self.pip_version = "21.0.1"
+        self.poetry_version = "1.0.10"
 
     @command
     def bootstrap(self) -> None:
+        run(f"pip install pip=={self.pip_version}")
+        run(f"pip install poetry=={self.poetry_version}")
+        run("poetry config virtualenvs.create true")
+        run("poetry config virtualenvs.in-project true")
+        run("poetry install")
+
+        os.chdir(self.django_srv_dir)
+        run("poetry config virtualenvs.create true")
+        run("poetry config virtualenvs.in-project true")
+        run("poetry install")
+
+        os.chdir(self.flask_srv_dir)
         run("poetry config virtualenvs.create true")
         run("poetry config virtualenvs.in-project true")
         run("poetry install")

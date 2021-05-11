@@ -2,52 +2,56 @@ import shutil
 from pickle import PicklingError
 from typing import Any, Dict
 
-import pip
+from stickybeak._priv import pip
 import pytest
 from pytest import raises
 
 from stickybeak import Injector, InjectorException
-from stickybeak._priv import utils
+from tests import utils
 
 
-@pytest.mark.usefixtures("injector", "flask_server", "django_server")
+@pytest.mark.parametrize("injector", [pytest.lazy_fixture("mock_injector"),
+                                      pytest.lazy_fixture("django_injector"),
+                                      pytest.lazy_fixture("flask_injector")])
 class TestInjectors:
     def test_installs_missing_package(self, injector):
-        @injector.function
-        def get_loguru_version() -> str:
-            import loguru
+        from stickybeak._priv import utils
 
-            return loguru.__version__
+        @injector.function
+        def get_humanize_version() -> str:
+            import humanize
+            return humanize.__version__
 
         for p in utils.get_site_packges_from_venv(injector.stickybeak_dir / ".venv").glob("loguru*"):
             shutil.rmtree(str(p))
 
-        ver = get_loguru_version()
+        ver = get_humanize_version()
 
-        assert ver == "0.5.1"
+        assert ver == "3.5.0"
 
     def test_installs_upgrade(self, injector):
+        from stickybeak._priv import utils
+
         @injector.function
-        def get_loguru_version() -> str:
-            import loguru
+        def get_humanize_version() -> str:
+            import humanize
+            return humanize.__version__
 
-            return loguru.__version__
-
-        for p in utils.get_site_packges_from_venv(injector.stickybeak_dir / ".venv").glob("loguru*"):
+        for p in utils.get_site_packges_from_venv(injector.stickybeak_dir / ".venv").glob("humanize*"):
             shutil.rmtree(str(p))
 
         ret = pip.main(
             [
                 "install",
                 f"--target={str(utils.get_site_packges_from_venv(injector.stickybeak_dir / '.venv'))}",
-                "loguru==0.5.0",
+                "humanize==3.4.0",
             ]
         )
         assert ret == 0
 
         # should upgrade
-        ver = get_loguru_version()
-        assert ver == "0.5.1"
+        ver = get_humanize_version()
+        assert ver == "3.5.0"
 
     def test_syntax_errors(self, injector):
         @injector.function
@@ -57,16 +61,6 @@ class TestInjectors:
         with pytest.raises(SyntaxError):
             ret = fun()
             assert ret == 0.5
-
-    def test_not_connected(self):
-        injector = Injector(address="some_addr")
-
-        @injector.function
-        def fun() -> Any:
-            return "cake"
-
-        with pytest.raises(InjectorException):
-            fun()
 
     def test_function(self, injector):
         def fun() -> int:
@@ -124,6 +118,9 @@ class TestInjectors:
         assert fun(5, 6) == 18
 
     def test_env_variables(self, injector):
+        if isinstance(injector, utils.MockInjector):
+            return
+
         @injector.function
         def fun() -> str:
             import os
@@ -187,34 +184,41 @@ class TestInjectors:
         assert Klass2.fun("value") == "value_added"
 
 
-@pytest.mark.usefixtures("django_injector", "django_server")
-class TestDjango:
-    def test_accessing_fields(self):
-        @self.injector.function
-        def fun():
-            from app.models import Currency
+def test_accessing_fields(django_injector):
+    @django_injector.function
+    def fun():
+        from app.models import Currency
 
-            Currency.objects.all().delete()
-            currency = Currency()
-            currency.name = "test_currency"
-            currency.endpoint = "test_endpoint"
-            currency.save()
-            return Currency.objects.all()[0]  # noqa
+        Currency.objects.all().delete()
+        currency = Currency()
+        currency.name = "test_currency"
+        currency.endpoint = "test_endpoint"
+        currency.save()
+        return Currency.objects.all()[0]  # noqa
 
-        ret: object = fun()
-        assert ret.name == "test_currency"
-        assert ret.endpoint == "test_endpoint"
+    ret: object = fun()
+    assert ret.name == "test_currency"
+    assert ret.endpoint == "test_endpoint"
 
 
-@pytest.mark.usefixtures("django_server", "django_injector_no_download")
-class TestNoDownload:
-    def test_no_download(self):
-        @self.injector.function
-        def fun() -> int:
-            a = 5
-            b = 3
-            c = a + b
-            return c
+def test_no_download(django_injector_no_download):
+    @django_injector_no_download.function
+    def fun() -> int:
+        a = 5
+        b = 3
+        c = a + b
+        return c
 
-        with raises(ModuleNotFoundError):
-            ret: int = fun()
+    with raises(ModuleNotFoundError):
+        ret: int = fun()
+
+
+def test_not_connected(django_injector_not_connected):
+    injector = Injector(address="some_addr")
+
+    @injector.function
+    def fun() -> Any:
+        return "cake"
+
+    with pytest.raises(InjectorException):
+        fun()

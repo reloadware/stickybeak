@@ -9,9 +9,11 @@ python = "^3.6.1"
 flask = "^1.1.2"
 stickybeak = {path = "../../../"}
 loguru = "^0.5.1"
-rhei = "^0.5.2"
+rhei = "0.5.2"
 rich = "^9.12.4"
 dill = "^0.3.3"
+humanize = "3.5.0"
+envo = "0.9.4.15b"
 
 [tool.poetry.dev-dependencies]
 

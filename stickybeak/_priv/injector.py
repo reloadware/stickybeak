@@ -4,6 +4,9 @@ import os
 import shutil
 import trace
 from pathlib import Path
+
+from dataclasses import dataclass
+
 import dill as pickle
 import subprocess
 import sys
@@ -12,6 +15,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
 from time import sleep
+
+import requests.exceptions
 
 from stickybeak._priv import pip, utils
 from stickybeak._priv.handle_requests import get_requirements
@@ -23,6 +28,15 @@ __all__ = ["InjectorException", "Injector", "DjangoInjector"]
 
 class InjectorException(Exception):
     pass
+
+
+class ConnectionError(Exception):
+    pass
+
+
+@dataclass
+class DependencyInstallError(Exception):
+    return_code: int
 
 
 class Injector:
@@ -54,29 +68,30 @@ class Injector:
 
     def connect(self, blocking: bool = True) -> None:
         def target():
+            try:
+                # ########## Get data
+                self._data = self._client.get("")
 
-            # ########## Get data
+                # ########## Collect remote code
+                sources: Dict[str, str] = self._data["source"]
 
-            self._data = self._client.get("")
+                if sources == {}:
+                    raise RuntimeError("Couldn't find any source files (*.py).")
 
-            # ########## Collect remote code
-            sources: Dict[str, str] = self._data["source"]
+                for path, source in sources.items():
+                    abs_path: Path = self.stickybeak_dir / Path(path)
 
-            if sources == {}:
-                raise RuntimeError("Couldn't find any source files (*.py).")
+                    abs_path.parent.mkdir(parents=True, exist_ok=True)
+                    abs_path.touch()
+                    abs_path.write_text(source,"utf-8")
 
-            for path, source in sources.items():
-                abs_path: Path = self.stickybeak_dir / Path(path)
+                # ########## collect requirements
+                if self._download_deps:
+                    self._do_download_deps()
 
-                abs_path.parent.mkdir(parents=True, exist_ok=True)
-                abs_path.touch()
-                abs_path.write_text(source,"utf-8")
-
-            # ########## collect requirements
-            if self._download_deps:
-                self._do_download_deps()
-
-            self.connected = True
+                self.connected = True
+            except requests.exceptions.ConnectionError as e:
+                raise ConnectionError from None
 
         if blocking:
             target()
@@ -109,6 +124,9 @@ class Injector:
             site_packages = utils.get_site_packges_from_venv(venv_dir)
             reqs = [f"{p}=={v}" for p, v in reqs_diff.items()]
             ret = pip.main(["install", f"--target={str(site_packages)}", "--upgrade", *reqs])
+
+            if ret:
+                raise DependencyInstallError(return_code=ret)
 
     def _raise_if_not_connected(self) -> None:
         if not self.connected:

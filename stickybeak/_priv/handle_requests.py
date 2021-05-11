@@ -9,10 +9,7 @@ import dill as pickle
 from stickybeak._priv import sandbox, utils
 from stickybeak._priv.pip._internal.operations import freeze  # type: ignore
 from stickybeak._priv.pip._internal.utils.misc import (
-    dist_is_editable,
     get_installed_distributions,
-    tabulate,
-    write_output,
 )
 
 from textwrap import dedent
@@ -82,12 +79,17 @@ def get_requirements(venv_path: Optional[Path] = None) -> Dict[str, str]:
         site_packages = utils.get_site_packges_from_venv(venv_path)
         paths = [str(site_packages)]
 
+    from stickybeak._priv.pip._vendor.pkg_resources import EggInfoDistribution
+
     cleared_reqs: Dict[str, str] = {}
 
     for r in get_installed_distributions(
         paths=paths, skip=["pip", "pkg-resources", "setuptools", "packaging"], local_only=False,
             include_editables=False
     ):
+        if isinstance(r, EggInfoDistribution):
+            continue
+
         name: str = r.project_name
         version: str = r.version
         cleared_reqs[name] = version

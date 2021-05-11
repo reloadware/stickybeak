@@ -53,4 +53,4 @@ def get_site_packges_from_venv(venv: Path) -> Path:
     ret = next((venv / "lib").glob("*"))
     if ret.name != "site-packages":
         ret /= "site-packages"
-    return  ret
+    return ret

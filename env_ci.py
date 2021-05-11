@@ -1,8 +1,7 @@
+import os
 from typing import List, Dict, Any, Optional, Tuple  # noqa: F401
 
 from pathlib import Path
-
-import envo  # noqa: F401
 
 from envo import (  # noqa: F401
     logger,
@@ -30,7 +29,7 @@ from envo import (  # noqa: F401
 
 
 class StickybeakCiEnv(UserEnv):  # type: ignore
-    class Meta(envo.Env.Meta):  # type: ignore
+    class Meta(UserEnv.Meta):  # type: ignore
         root = Path(__file__).parent.absolute()
         stage: str = "ci"
         emoji: str = "🧪"
@@ -54,11 +53,9 @@ class StickybeakCiEnv(UserEnv):  # type: ignore
 
     @command
     def test(self) -> None:
+        os.chdir(self.root)
         logger.info("Running tests", print_msg=True)
-        pass
-        # run(
-        #     "pytest --reruns 3 -v tests --cov-report xml:workspace/cov.xml --cov=envo ./workspace"
-        # )
+        run("pytest --reruns 3 -v tests --cov-report xml:workspace/cov.xml --cov=stickybeak ./workspace")
 
     @command
     def build(self) -> None:

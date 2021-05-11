@@ -1,7 +1,8 @@
+import os
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple  # noqa: F401
 
-import envo  # noqa: F401
 from envo import (  # noqa: F401
     Plugin,
     Raw,
@@ -30,7 +31,7 @@ localci = Namespace(name="localci")
 
 
 class StickybeakLocalEnv(UserEnv):  # type: ignore
-    class Meta(envo.Env.Meta):  # type: ignore
+    class Meta(UserEnv.Meta):  # type: ignore
         root = Path(__file__).parent.absolute()
         stage: str = "local"
         emoji: str = "🐣"
@@ -46,6 +47,13 @@ class StickybeakLocalEnv(UserEnv):  # type: ignore
     def __init__(self) -> None:
         # Define your variables here
         ...
+
+    @command
+    def bootstrap(self) -> None:
+        shutil.rmtree(".venv")
+        shutil.rmtree(self.django_srv_dir / ".venv", ignore_errors=True)
+        shutil.rmtree(self.flask_srv_dir / ".venv", ignore_errors=True)
+        super().bootstrap()
 
     @command
     def flake(self) -> None:
@@ -72,6 +80,7 @@ class StickybeakLocalEnv(UserEnv):  # type: ignore
 
     @command
     def test(self) -> None:
+        os.chdir(self.root)
         run("pytest -v tests")
 
     @localci.command

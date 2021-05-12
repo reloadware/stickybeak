@@ -34,7 +34,7 @@ workflows:
 
 defaults: &defaults
   docker:
-    - image: circleci/python:3.8.2
+    - image: circleci/python:3.6
   environment:
     CRYPTOGRAPHY_DONT_BUILD_RUST: 1
 

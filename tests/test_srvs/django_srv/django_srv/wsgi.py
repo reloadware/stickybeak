@@ -18,4 +18,6 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django_srv.settings")
 
 application = get_wsgi_application()
 
-stickybeak.Server(project_root=Path(os.getcwd()), port=5883).run()
+stickybeak_port = int(os.environ["STICKYBEAK_PORT"])
+
+stickybeak.Server(project_root=Path(os.getcwd()), port=stickybeak_port).run()

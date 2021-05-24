@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 import dill as pickle
@@ -8,10 +9,6 @@ from requests import Response
 
 from stickybeak import  Injector
 from stickybeak._priv import handle_requests
-
-from .env_test import Env
-
-env = Env()
 
 
 class MockInjector(Injector):
@@ -37,12 +34,12 @@ class MockInjector(Injector):
         return response
 
     def _mock_get(self, endpoint: str, *args, **kwargs) -> Response:
+        from tests.test_srvs import django_srv
+
         response = Response()
 
-        data: Dict[str, Dict[str, str]] = handle_requests.get_data(env.root / "test_srvs/django_srv")
+        data: Dict[str, Dict[str, str]] = handle_requests.get_data(django_srv.root)
         response._content = json.dumps(data)
 
         response.status_code = 200
         return response
-
-

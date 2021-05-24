@@ -21,6 +21,10 @@ from stickybeak._priv.handle_requests import get_requirements
 from stickybeak._priv.utils import Client
 from threading import Thread
 
+import socket
+from contextlib import closing
+
+
 __all__ = ["InjectorException", "Injector", "DjangoInjector"]
 
 
@@ -43,6 +47,7 @@ class Injector:
     connected: bool
     stickybeak_dir: Path
     address: Optional[str]
+    port: Optional[int]
     name: Optional[str]
 
     _client: Optional[Client]
@@ -56,21 +61,30 @@ class Injector:
         self.address = None
         self._client = None
         self.name = None
+        self.port = None
 
         self._download_deps = download_deps
-
-        project_dir: Path = Path(".").absolute()
-        project_hash = hashlib.sha1(str(project_dir).encode("utf-8")).hexdigest()[0:8]
-        self.stickybeak_dir = Path.home() / ".stickybeak" / Path(f"{self.name}_{project_hash}")
 
         self._data = {}
         self.connected = False
 
-    def connect(self, address: str, blocking: bool = True) -> None:
-        self.address: str = address
-        self._client = Client(self.address)
-        self.name: str = urlparse(self.address).netloc.replace(":", "_")
+    def _get_free_port(self) -> int:
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+            s.bind(('', 0))
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            return s.getsockname()[1]
 
+    def prepare(self, address: str, port: Optional[int] = None) -> None:
+        self.port = port or self._get_free_port()
+
+        self.address: str = address
+        self._client = Client(self.address + f":{self.port}")
+        self.name: str = urlparse(self.address).netloc.replace(":", "_")
+        project_dir: Path = Path(".").absolute()
+        project_hash = hashlib.sha1(str(project_dir).encode("utf-8")).hexdigest()[0:8]
+        self.stickybeak_dir = Path.home() / ".stickybeak" / Path(f"{self.name}_{project_hash}")
+
+    def connect(self, blocking: bool = True) -> None:
         def target():
             try:
                 # ########## Get data

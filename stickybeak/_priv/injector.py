@@ -1,8 +1,6 @@
 import hashlib
 import inspect
 import os
-import shutil
-import trace
 from pathlib import Path
 
 from dataclasses import dataclass
@@ -44,20 +42,22 @@ class Injector:
 
     connected: bool
     stickybeak_dir: Path
+    address: Optional[str]
+    name: Optional[str]
 
-    _client: Client
+    _client: Optional[Client]
     _data: Dict[str, Dict[str, str]]  # server data like source or pip freeze requirements
 
-    def __init__(self, address: str, download_deps: bool = True) -> None:
+    def __init__(self, download_deps: bool = True) -> None:
         """
         :param address: service address that's gonna be injected.
         :param endpoint:
         """
-        self.address: str = address
-        self._download_deps = download_deps
-        self._client = Client(self.address)
+        self.address = None
+        self._client = None
+        self.name = None
 
-        self.name: str = urlparse(self.address).netloc.replace(":", "_")
+        self._download_deps = download_deps
 
         project_dir: Path = Path(".").absolute()
         project_hash = hashlib.sha1(str(project_dir).encode("utf-8")).hexdigest()[0:8]
@@ -66,7 +66,11 @@ class Injector:
         self._data = {}
         self.connected = False
 
-    def connect(self, blocking: bool = True) -> None:
+    def connect(self, address: str, blocking: bool = True) -> None:
+        self.address: str = address
+        self._client = Client(self.address)
+        self.name: str = urlparse(self.address).netloc.replace(":", "_")
+
         def target():
             try:
                 # ########## Get data
@@ -260,8 +264,8 @@ class Injector:
 
 
 class DjangoInjector(Injector):
-    def __init__(self, address: str, django_settings_module: str, download_deps: bool = True) -> None:
-        super().__init__(address=address, download_deps=download_deps)
+    def __init__(self, django_settings_module: str, download_deps: bool = True) -> None:
+        super().__init__(download_deps=download_deps)
         self.django_settings_module = django_settings_module
 
     def _before_execute(self) -> None:

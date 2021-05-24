@@ -214,9 +214,7 @@ def test_no_download(django_injector_no_download):
 
 
 def test_not_connected(django_injector_not_connected):
-    injector = Injector(address="some_addr")
-
-    @injector.function
+    @django_injector_not_connected.function
     def fun() -> Any:
         return "cake"
 

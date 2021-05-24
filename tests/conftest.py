@@ -13,9 +13,9 @@ env = Env()
 
 @fixture
 def mock_injector():
-    mock_injector = utils.MockInjector(address="http://local-mock")
+    mock_injector = utils.MockInjector()
     mock_injector.mock()
-    mock_injector.connect()
+    mock_injector.connect(address="http://local-mock")
 
     yield mock_injector
 
@@ -24,31 +24,32 @@ def mock_injector():
 
 @fixture
 def django_injector():
-    injector = DjangoInjector(address=env.django.hostname, django_settings_module="django_srv.settings")
-    injector.connect()
+    injector = DjangoInjector(django_settings_module="django_srv.settings")
+    injector.connect(address=env.django.hostname)
     return injector
 
 
 @fixture
 def flask_injector():
-    injector = utils.Injector(address=env.flask.hostname)
-    injector.connect()
+    injector = utils.Injector()
+    injector.connect(address=env.flask.hostname)
     return injector
 
 
 @fixture
 def django_injector_no_download():
-    django_injector_no_download = DjangoInjector(address=env.django.hostname, django_settings_module="django_srv.settings",
+    django_injector_no_download = DjangoInjector(django_settings_module="django_srv.settings",
                                                  download_deps=False)
-    django_injector_no_download.connect()
+    django_injector_no_download.connect(address=env.django.hostname)
 
     return django_injector_no_download
 
 
 @fixture
 def django_injector_not_connected():
-    django_injector_no_download = DjangoInjector(address=env.django.hostname, django_settings_module="django_srv.settings",
+    django_injector_no_download = DjangoInjector(django_settings_module="django_srv.settings",
                                                  download_deps=False)
+
     return django_injector_no_download
 
 

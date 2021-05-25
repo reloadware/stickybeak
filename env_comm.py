@@ -64,17 +64,17 @@ class StickybeakCommEnv(UserEnv):  # type: ignore
         run(f"pip install poetry=={self.poetry_version}")
         run("poetry config virtualenvs.create true")
         run("poetry config virtualenvs.in-project true")
-        run("poetry install")
+        run("poetry install --no-root")
 
         os.chdir(self.django_srv_dir)
         run("poetry config virtualenvs.create true")
         run("poetry config virtualenvs.in-project true")
-        run("poetry install")
+        run("poetry install --no-root")
 
         os.chdir(self.flask_srv_dir)
         run("poetry config virtualenvs.create true")
         run("poetry config virtualenvs.in-project true")
-        run("poetry install")
+        run("poetry install --no-root")
 
 
 Env = StickybeakCommEnv

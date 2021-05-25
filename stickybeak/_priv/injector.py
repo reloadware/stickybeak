@@ -245,23 +245,33 @@ class Injector:
         return ret
 
     def klass(self, cls: type) -> type:
-        cls._injector = self  # type: ignore
-        methods: List[str] = [a for a in dir(cls) if not a.startswith("__") and callable(getattr(cls, a))]
+        # re execute class to get copy
+        # this way original class can yield multiple injected classes
+        # first_instance = injector1.klass(Klass)
+        # second_instance = injector2.klass(Klass)
+        source: str = textwrap.dedent(inspect.getsource(cls))
+        definition_module = sys.modules[cls.__module__]
+        sandbox = {}
+        exec(source, definition_module.__dict__, sandbox)
+        cls_cpy = sandbox[cls.__name__]
+
+        cls_cpy._injector = self  # type: ignore
+        methods: List[str] = [a for a in dir(cls_cpy) if not a.startswith("__") and callable(getattr(cls_cpy, a))]
 
         for m in methods:
 
             def decorator(func: Callable[[], None]) -> Callable:
                 def wrapped(*args: object, **kwargs: object) -> object:
-                    return cls._injector.run_klass_fun(  # type: ignore
-                        cls, func, args, kwargs
+                    return cls_cpy._injector.run_klass_fun(  # type: ignore
+                        cls_cpy, func, args, kwargs
                     )
 
                 return wrapped
 
-            method: Callable[[], None] = getattr(cls, m)
-            setattr(cls, m, decorator(method))
+            method: Callable[[], None] = getattr(cls_cpy, m)
+            setattr(cls_cpy, m, decorator(method))
 
-        return cls
+        return cls_cpy
 
     def function(self, fun: Callable[[], None]) -> Callable:
         """

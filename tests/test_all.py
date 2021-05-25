@@ -183,6 +183,19 @@ class TestInjectors:
         assert Klass2.fun(test_str="value") == "value_added"
         assert Klass2.fun("value") == "value_added"
 
+    def test_multiple_injectors_per_class(self, injector):
+        # Bug reproduction
+        class Klass:
+            @classmethod
+            def fun(cls, test_str: str) -> str:
+                return test_str + "_added"
+
+        first_instance = injector.klass(Klass)
+        second_instance = injector.klass(Klass)
+
+        assert first_instance.fun(test_str="value") == "value_added"
+        assert second_instance.fun(test_str="value") == "value_added"
+
 
 def test_accessing_fields(django_injector):
     @django_injector.function

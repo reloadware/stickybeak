@@ -28,6 +28,7 @@ from envo import (  # noqa: F401
 # like this:
 
 localci = Namespace(name="localci")
+sb = Namespace("sb")
 
 
 class StickybeakLocalEnv(UserEnv):  # type: ignore
@@ -41,6 +42,7 @@ class StickybeakLocalEnv(UserEnv):  # type: ignore
         plugins: List[Plugin] = []
         watch_files: List[str] = []
         ignore_files: List[str] = []
+        verbose_run = True
 
     # Declare your variables here
 
@@ -48,37 +50,37 @@ class StickybeakLocalEnv(UserEnv):  # type: ignore
         # Define your variables here
         ...
 
-    @command
+    @sb.command
     def bootstrap(self) -> None:
         shutil.rmtree(".venv")
         shutil.rmtree(self.django_srv_dir / ".venv", ignore_errors=True)
         shutil.rmtree(self.flask_srv_dir / ".venv", ignore_errors=True)
         super().bootstrap()
 
-    @command
+    @sb.command
     def flake(self) -> None:
         self.black()
         run("flake8 .")
 
-    @command
+    @sb.command
     def black(self) -> None:
         self.isort()
         run("black .")
 
-    @command
+    @sb.command
     def isort(self) -> None:
         run("isort .")
 
-    @command
+    @sb.command
     def mypy(self) -> None:
         run("mypy .")
 
-    @command
+    @sb.command
     def ci(self) -> None:
         self.flake()
         self.mypy()
 
-    @command
+    @sb.command
     def test(self) -> None:
         os.chdir(self.root)
         run("pytest -v tests")

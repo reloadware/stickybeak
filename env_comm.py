@@ -21,12 +21,13 @@ from envo import (  # noqa: F401
     precmd,
     run,
     UserEnv,
-    VirtualEnv
+    VirtualEnv,
+    Namespace
 )
 
 # Declare your command namespaces here
 # like this:
-# my_namespace = command(namespace="my_namespace")
+sb = Namespace("sb")
 
 
 class StickybeakCommEnv(UserEnv):  # type: ignore
@@ -40,6 +41,7 @@ class StickybeakCommEnv(UserEnv):  # type: ignore
         watch_files: List[str] = []
         ignore_files: List[str] = []
         plugins: List[Plugin] = [VirtualEnv]
+        verbose_run = True
 
     # Declare your variables here
     test_dir: Path
@@ -58,7 +60,7 @@ class StickybeakCommEnv(UserEnv):  # type: ignore
         self.pip_version = "21.0.1"
         self.poetry_version = "1.0.10"
 
-    @command
+    @sb.command
     def bootstrap(self) -> None:
         run(f"pip install pip=={self.pip_version}")
         run(f"pip install poetry=={self.poetry_version}")

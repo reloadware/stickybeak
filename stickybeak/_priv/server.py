@@ -1,9 +1,11 @@
 import atexit
-import signal
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import BytesIO
 import json
 from pathlib import Path
+from time import sleep
+from typing import Optional
+
 import dill as pickle
 from threading import Thread
 
@@ -13,11 +15,16 @@ __all__ = ["Server"]
 
 
 class Server(Thread):
-    def __init__(self, project_root: Path, port: int) -> None:
+    project_root: Path
+    port: int
+    timeout: Optional[float]
+
+    def __init__(self, project_root: Path, port: int, timeout: Optional[float]=None) -> None:
         super().__init__()
 
         self.project_root = project_root
         self.port = port
+        self.timeout = timeout
 
         class Handler(BaseHTTPRequestHandler):
             project_root = self.project_root
@@ -57,11 +64,19 @@ class Server(Thread):
         self.httpd = HTTPServer(("localhost", self.port), Handler)
         self.setDaemon(True)
 
+    def _watchdog(self):
+        sleep(self.timeout)
+        self.exit()
+
     def exit(self):
         self.httpd.shutdown()
 
     def run(self) -> None:
         atexit.register(self.exit)
+
+        if self.timeout:
+            Thread(target=self._watchdog).start()
+
         self.httpd.serve_forever()
         self.httpd.server_close()
 

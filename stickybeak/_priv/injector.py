@@ -1,9 +1,10 @@
 import hashlib
 import inspect
 import os
+import shutil
 from pathlib import Path
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import dill as pickle
 import subprocess
@@ -17,7 +18,7 @@ from time import sleep
 import requests.exceptions
 
 from stickybeak._priv import pip, utils
-from stickybeak._priv.handle_requests import get_requirements
+from stickybeak._priv.handle_requests import get_requirements, Requirement
 from stickybeak._priv.utils import Client
 from threading import Thread
 
@@ -25,7 +26,7 @@ import socket
 from contextlib import closing
 
 
-__all__ = ["InjectorException", "Injector", "DjangoInjector"]
+__all__ = ["InjectorException", "Injector", "DjangoInjector", "ConnectionError"]
 
 
 class InjectorException(Exception):
@@ -41,32 +42,22 @@ class DependencyInstallError(Exception):
     return_code: int
 
 
+@dataclass
 class Injector:
     """Provides interface for code injection."""
 
-    connected: bool
-    stickybeak_dir: Path
-    address: Optional[str]
-    port: Optional[int]
-    name: Optional[str]
+    host: str
+    name: str
+    download_deps: bool
 
-    _client: Optional[Client]
-    _data: Dict[str, Dict[str, str]]  # server data like source or pip freeze requirements
+    stickybeak_dir: Path = field(init=False)
+    port: int = field(init=False)
 
-    def __init__(self, download_deps: bool = True) -> None:
-        """
-        :param address: service address that's gonna be injected.
-        :param endpoint:
-        """
-        self.address = None
-        self._client = None
-        self.name = None
-        self.port = None
+    connected: bool = field(init=False, default=False)
+    address: str = field(init=False)
 
-        self._download_deps = download_deps
-
-        self._data = {}
-        self.connected = False
+    _client: Optional[Client] = field(init=False)
+    _data: Dict[str, Any] = field(init=False, default_factory=dict)  # server data like source or pip freeze requirements
 
     def _get_free_port(self) -> int:
         with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
@@ -74,15 +65,13 @@ class Injector:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             return s.getsockname()[1]
 
-    def prepare(self, address: str, port: Optional[int] = None) -> None:
+    def prepare(self, port: Optional[int] = None) -> None:
         self.port = port or self._get_free_port()
 
-        self.address: str = address
-        self._client = Client(self.address + f":{self.port}")
-        self.name: str = urlparse(self.address).netloc.replace(":", "_")
+        self._client = Client(self.host + f":{self.port}")
         project_dir: Path = Path(".").absolute()
         project_hash = hashlib.sha1(str(project_dir).encode("utf-8")).hexdigest()[0:8]
-        self.stickybeak_dir = Path.home() / ".stickybeak" / Path(f"{self.name}_{project_hash}")
+        self.stickybeak_dir = Path.home() / ".stickybeak" / Path(f"{self.name}-{project_hash}")
 
     def connect(self, blocking: bool = True) -> None:
         def target():
@@ -104,7 +93,7 @@ class Injector:
                     abs_path.write_text(source,"utf-8")
 
                 # ########## collect requirements
-                if self._download_deps:
+                if self.download_deps:
                     self._do_download_deps()
 
                 self.connected = True
@@ -135,12 +124,31 @@ class Injector:
         remote_reqs = self._data["requirements"]
         local_reqs = get_requirements(venv_dir)
 
-        reqs_diff = {p: v for p, v in remote_reqs.items() if p not in local_reqs or local_reqs[p] != remote_reqs[p]}
+        @dataclass
+        class ReqDiff:
+            local: Optional[Requirement]
+            remote: Requirement
+
+        reqs_diff = {}
+        for p, v in remote_reqs.items():
+            remote = remote_reqs[p]
+            local = local_reqs.get(p)
+
+            if not local or remote["version"] != local["version"]:
+                reqs_diff[p] = ReqDiff(local=local, remote=remote)
 
         if reqs_diff:
             # delete packages manualy (sometimes pip doesn't downgrade for some reason)
-            site_packages = utils.get_site_packges_from_venv(venv_dir)
-            reqs = [f"{p}=={v}" for p, v in reqs_diff.items()]
+            site_packages = utils.get_site_packages_dir_from_venv(venv_dir)
+            for p, r in reqs_diff.items():
+                if not r.local:
+                    continue
+                package_dir = site_packages / r.local["key"]
+                shutil.rmtree(package_dir, ignore_errors=True)
+
+                shutil.rmtree(r.local["egg_info"], ignore_errors=True)
+
+            reqs = [f"{p}=={r.remote['version']}" for p, r in reqs_diff.items()]
             ret = pip.main(["install", f"--target={str(site_packages)}", "--upgrade", *reqs])
 
             if ret:
@@ -167,14 +175,14 @@ class Injector:
         envs_before: os._Environ = os.environ.copy()  # type: ignore
         os.environ = self._data["envs"]  # type: ignore
 
-        sys.path = [p for p in sys.path if "site-packages" not in p]
+        if self.download_deps:
+            sys.path = [p for p in sys.path if "site-packages" not in p]
 
-        # remove project dir from sys.path so there's no conflicts
-        sys.path.pop(0)
-        sys.path.insert(0, str(self.stickybeak_dir.absolute()))
+            # remove project dir from sys.path so there's no conflicts
+            sys.path.pop(0)
+            sys.path.insert(0, str(self.stickybeak_dir.absolute()))
 
-        if self._download_deps:
-            site_packages = utils.get_site_packges_from_venv(self.stickybeak_dir.absolute() / ".venv")
+            site_packages = utils.get_site_packages_dir_from_venv(self.stickybeak_dir.absolute() / ".venv")
             sys.path = [str(site_packages), *sys.path]
 
         self._before_execute()
@@ -185,7 +193,10 @@ class Injector:
             "kwargs": kwargs
         }
         pickled_data = pickle.dumps(data)
-        content: bytes = self._client.post("", data=pickled_data).content
+        try:
+            content: bytes = self._client.post("", data=pickled_data).content
+        except requests.exceptions.ConnectionError:
+            raise ConnectionError from None
         ret: object = pickle.loads(content)
 
         os.environ = envs_before
@@ -287,10 +298,9 @@ class Injector:
         return wrapped
 
 
+@dataclass
 class DjangoInjector(Injector):
-    def __init__(self, django_settings_module: str, download_deps: bool = True) -> None:
-        super().__init__(download_deps=download_deps)
-        self.django_settings_module = django_settings_module
+    django_settings_module: str
 
     def _before_execute(self) -> None:
         modules = list(sys.modules.keys())[:]

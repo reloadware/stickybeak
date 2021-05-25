@@ -20,12 +20,14 @@ from envo import (  # noqa: F401
     boot_code,
     Plugin,
     VirtualEnv,
-    UserEnv
+    UserEnv,
+    Namespace
 )
 
 # Declare your command namespaces here
 # like this:
 # my_namespace = command(namespace="my_namespace")
+sb = Namespace("sb")
 
 
 class StickybeakCiEnv(UserEnv):  # type: ignore
@@ -39,6 +41,7 @@ class StickybeakCiEnv(UserEnv):  # type: ignore
         plugins: List[Plugin] = []
         watch_files: List[str] = []
         ignore_files: List[str] = []
+        verbose_run = True
 
     # Declare your variables here
 
@@ -46,46 +49,46 @@ class StickybeakCiEnv(UserEnv):  # type: ignore
         super().__init__(*args, **kwargs)
         # Define your variables here
 
-    @command
+    @sb.command
     def bootstrap(self) -> None:
         run("mkdir -p workspace")
         super().bootstrap()
 
-    @command
+    @sb.command
     def test(self) -> None:
         os.chdir(self.root)
         logger.info("Running tests", print_msg=True)
         run("pytest --reruns 3 -v tests --cov-report xml:workspace/cov.xml --cov=stickybeak ./workspace")
 
-    @command
+    @sb.command
     def build(self) -> None:
         run("poetry build")
 
-    @command
+    @sb.command
     def publish(self) -> None:
         run("poetry publish --username $PYPI_USERNAME --password $PYPI_PASSWORD")
 
-    @command
+    @sb.command
     def rstcheck(self) -> None:
         pass
         # run("rstcheck README.rst | tee ./workspace/rstcheck.txt")
 
-    @command
+    @sb.command
     def flake(self) -> None:
         pass
         # run("flake8 . | tee ./workspace/flake8.txt")
 
-    @command
+    @sb.command
     def check_black(self) -> None:
         pass
         # run("black --check . | tee ./workspace/black.txt")
 
-    @command
+    @sb.command
     def mypy(self) -> None:
         pass
         # run("mypy . | tee ./workspace/mypy.txt")
 
-    @command
+    @sb.command
     def generate_version(self) -> None:
         import toml
 
@@ -97,7 +100,7 @@ class StickybeakCiEnv(UserEnv):  # type: ignore
 
         version_file.write_text(f'__version__ = "{version}"\n')
 
-    @command
+    @sb.command
     def upload_codecov(self) -> None:
         run(
             """

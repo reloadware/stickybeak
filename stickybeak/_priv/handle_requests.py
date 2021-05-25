@@ -1,10 +1,12 @@
 import glob
 import os
 from pathlib import Path
-import sys
 from typing import Dict, List, Optional, Any
-from . import sandbox
+
+from dataclasses import dataclass
+
 import dill as pickle
+from typing_extensions import TypedDict
 
 from stickybeak._priv import sandbox, utils
 from stickybeak._priv.pip._internal.operations import freeze  # type: ignore
@@ -12,7 +14,12 @@ from stickybeak._priv.pip._internal.utils.misc import (
     get_installed_distributions,
 )
 
-from textwrap import dedent
+
+class Requirement(TypedDict):
+    project_name: str
+    egg_info: str
+    key: str
+    version: str
 
 
 def call_function(source: str, call: str, args: List[Any], kwargs: Dict[str, Any]) -> bytes:
@@ -73,15 +80,15 @@ def get_source(project_dir: Path) -> Dict[str, str]:
     return source_code
 
 
-def get_requirements(venv_path: Optional[Path] = None) -> Dict[str, str]:
+def get_requirements(venv_path: Optional[Path] = None) -> Dict[str, Requirement]:
     paths: Optional[List[str]] = None
     if venv_path:
-        site_packages = utils.get_site_packges_from_venv(venv_path)
+        site_packages = utils.get_site_packages_dir_from_venv(venv_path)
         paths = [str(site_packages)]
 
-    from stickybeak._priv.pip._vendor.pkg_resources import EggInfoDistribution
+    cleared_reqs = {}
 
-    cleared_reqs: Dict[str, str] = {}
+    from stickybeak._priv.pip._vendor.pkg_resources import EggInfoDistribution
 
     for r in get_installed_distributions(
         paths=paths, skip=["pip", "pkg-resources", "setuptools", "packaging"], local_only=False,
@@ -90,9 +97,11 @@ def get_requirements(venv_path: Optional[Path] = None) -> Dict[str, str]:
         if isinstance(r, EggInfoDistribution):
             continue
 
-        name: str = r.project_name
-        version: str = r.version
-        cleared_reqs[name] = version
+        req = Requirement(project_name=r.project_name,
+                          key=r.key,
+                          egg_info=r.egg_info,
+                          version=r.version)
+        cleared_reqs[r.project_name] = req
 
     return cleared_reqs
 

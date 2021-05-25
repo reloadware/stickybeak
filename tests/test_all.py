@@ -1,28 +1,32 @@
 import shutil
+import signal
 from pickle import PicklingError
+from time import sleep
 from typing import Any, Dict
 
+import stickybeak
 from stickybeak._priv import pip
 import pytest
 from pytest import raises
 
 from stickybeak import Injector, InjectorException
 from tests import utils
+from stickybeak._priv import utils as stickybeak_utils
 
 
-@pytest.mark.parametrize("injector", [pytest.lazy_fixture("mock_injector"),
-                                      pytest.lazy_fixture("django_injector"),
+@pytest.mark.parametrize("injector", [pytest.lazy_fixture("django_injector"),
                                       pytest.lazy_fixture("flask_injector")])
-class TestInjectors:
+class TestDownloadingRequirements:
     def test_installs_missing_package(self, injector):
-        from stickybeak._priv import utils
+        if isinstance(injector, utils.MockInjector):
+            pytest.skip()
 
         @injector.function
         def get_humanize_version() -> str:
             import humanize
             return humanize.__version__
 
-        for p in utils.get_site_packges_from_venv(injector.stickybeak_dir / ".venv").glob("loguru*"):
+        for p in stickybeak_utils.get_site_packages_dir_from_venv(injector.stickybeak_dir / ".venv").glob("loguru*"):
             shutil.rmtree(str(p))
 
         ver = get_humanize_version()
@@ -30,20 +34,21 @@ class TestInjectors:
         assert ver == "3.5.0"
 
     def test_installs_upgrade(self, injector):
-        from stickybeak._priv import utils
+        if isinstance(injector, utils.MockInjector):
+            pytest.skip()
 
         @injector.function
         def get_humanize_version() -> str:
             import humanize
             return humanize.__version__
 
-        for p in utils.get_site_packges_from_venv(injector.stickybeak_dir / ".venv").glob("humanize*"):
+        for p in stickybeak_utils.get_site_packages_dir_from_venv(injector.stickybeak_dir / ".venv").glob("humanize*"):
             shutil.rmtree(str(p))
 
         ret = pip.main(
             [
                 "install",
-                f"--target={str(utils.get_site_packges_from_venv(injector.stickybeak_dir / '.venv'))}",
+                f"--target={str(stickybeak_utils.get_site_packages_dir_from_venv(injector.stickybeak_dir / '.venv'))}",
                 "humanize==3.4.0",
             ]
         )
@@ -53,6 +58,11 @@ class TestInjectors:
         ver = get_humanize_version()
         assert ver == "3.5.0"
 
+
+@pytest.mark.parametrize("injector", [pytest.lazy_fixture("mock_injector"),
+                                      pytest.lazy_fixture("django_injector"),
+                                      pytest.lazy_fixture("flask_injector")])
+class TestInjectors:
     def test_syntax_errors(self, injector):
         @injector.function
         def fun() -> Any:
@@ -184,17 +194,40 @@ class TestInjectors:
         assert Klass2.fun("value") == "value_added"
 
     def test_multiple_injectors_per_class(self, injector):
-        # Bug reproduction
-        class Klass:
+        class Klass3:
             @classmethod
             def fun(cls, test_str: str) -> str:
                 return test_str + "_added"
 
-        first_instance = injector.klass(Klass)
-        second_instance = injector.klass(Klass)
+        first_instance = injector.klass(Klass3)
+        second_instance = injector.klass(Klass3)
 
         assert first_instance.fun(test_str="value") == "value_added"
         assert second_instance.fun(test_str="value") == "value_added"
+
+
+def test_timeout():
+    injector = utils.Injector(host="http://localhost", name="flask", download_deps=False)
+
+    @injector.klass
+    class Klass:
+        @classmethod
+        def fun(cls) -> str:
+            return "So fun"
+
+    stickybeak_port = 8520
+    process = utils.server_factory(timeout=3, stickybea_port=stickybeak_port)
+
+    injector.prepare(port=stickybeak_port)
+    injector.connect()
+
+    assert Klass.fun() == "So fun"
+    sleep(3)
+    with raises(stickybeak.ConnectionError):
+        assert Klass.fun() == "So fun"
+
+    process.send_signal(signal.SIGINT)
+    process.kill()
 
 
 def test_accessing_fields(django_injector):

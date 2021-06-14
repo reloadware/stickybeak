@@ -85,7 +85,6 @@ class StickybeakLocalEnv(UserEnv):  # type: ignore
 
     @sb.command
     def test(self) -> None:
-        os.chdir(self.root)
         run("pytest -v tests")
 
     @localci.command

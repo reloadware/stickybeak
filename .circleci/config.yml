@@ -57,7 +57,7 @@ save_cache: &save_cache
 install_envo: &install_envo
   run:
     name: Install envo
-    command: pip install envo==0.9.7.2
+    command: pip install envo==0.9.7.4
 
 bootstrap: &bootstrap
   run:

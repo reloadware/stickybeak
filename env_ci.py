@@ -57,7 +57,6 @@ class StickybeakCiEnv(UserEnv):  # type: ignore
 
     @sb.command
     def test(self) -> None:
-        os.chdir(self.root)
         logger.info("Running tests", print_msg=True)
         run("pytest --reruns 3 -v tests --cov-report xml:workspace/cov.xml --cov=stickybeak ./workspace")
 
@@ -93,10 +92,10 @@ class StickybeakCiEnv(UserEnv):  # type: ignore
     def generate_version(self) -> None:
         import toml
 
-        config = toml.load(str(self.root / "pyproject.toml"))
+        config = toml.load(str(self.meta.root / "pyproject.toml"))
         version: str = config["tool"]["poetry"]["version"]
 
-        version_file = self.root / "stickybeak/__version__.py"
+        version_file = self.meta.root / "stickybeak/__version__.py"
         Path(version_file).touch()
 
         version_file.write_text(f'__version__ = "{version}"\n')

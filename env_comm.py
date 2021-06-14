@@ -64,6 +64,13 @@ class StickybeakCommEnv(UserEnv):  # type: ignore
         self.poetry_version = "1.0.10"
 
     @sb.command
+    def clean(self) -> None:
+        run("rm **/*/__pycache__ -rf")
+        run("rm **/*/.eggs -rf")
+        run("rm **/*/*.egg-info -rf")
+        run("rm **/*/*.egg-info -rf")
+
+    @sb.command
     def bootstrap(self) -> None:
         run(f"pip install pip=={self.pip_version}")
         run(f"pip install poetry=={self.poetry_version}")

@@ -1,15 +1,15 @@
 [tool.poetry]
 name = "stickybeak"
-version = "0.6.0"
-description = "Package that makes e2e tests easy."
-authors = ["Damian Krystkiewicz <damian.krystkiewicz@gmail.com>"]
+version = "0.6.1"
+description = "package that makes e2e tests easy."
+authors = ["damian krystkiewicz <damian.krystkiewicz@gmail.com>"]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: Implementation :: CPython"
+    "development status :: 4 - beta",
+    "intended audience :: developers",
+    "operating system :: posix :: linux",
+    "programming language :: python :: 3 :: only",
+    "programming language :: python :: 3.7",
+    "programming language :: python :: implementation :: cpython"
 ]
 homepage = "https://github.com/dkrystki/stickybeak"
 
@@ -18,7 +18,6 @@ python = ">=3.6.1, <4.0"
 requests = "^2.24.0"
 virtualenv = "^20.0.31"
 django = "*"
-rich = "^9.12.4"
 dill = "^0.3.3"
 rhei = "^0.5.2"
 
@@ -40,7 +39,7 @@ humanize = "3.5.0"
 rhei = "^0.5.2"
 
 [tool.black]
-skip_gitignore = "True"
+skip_gitignore = "true"
 target-version = ['py38']
 line-length = 120
 exclude = '''
@@ -55,11 +54,11 @@ exclude = '''
 profile = "black"
 indent = '    '
 known_django = "django"
-sections = "FUTURE,STDLIB,DJANGO,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
-skip_gitignore = "True"
-include_trailing_comma = "True"
-force_sort_within_sections = "True"
-forced_separate = "True"
+sections = "future,stdlib,django,thirdparty,firstparty,localfolder"
+skip_gitignore = "true"
+include_trailing_comma = "true"
+force_sort_within_sections = "true"
+forced_separate = "true"
 line_length = 120
 skip = [".venv", "stickybeak/_priv/pip"]
 

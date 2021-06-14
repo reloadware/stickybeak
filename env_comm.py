@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional, Tuple  # noqa: F401
 import envo  # noqa: F401
 from envo import (  # noqa: F401
     Plugin,
-    Raw,
     boot_code,
     command,
     context,
@@ -43,6 +42,10 @@ class StickybeakCommEnv(UserEnv):  # type: ignore
         plugins: List[Plugin] = [VirtualEnv]
         verbose_run = True
 
+    class Environ(UserEnv.Environ):
+        pass
+    e: Environ
+
     # Declare your variables here
     test_dir: Path
     test_srvs_dir: Path
@@ -53,7 +56,7 @@ class StickybeakCommEnv(UserEnv):  # type: ignore
 
     def __init__(self) -> None:
         # Define your variables here
-        self.test_dir = self.root / "tests"
+        self.test_dir = self.meta.root / "tests"
         self.test_srvs_dir = self.test_dir / "test_srvs"
         self.django_srv_dir = self.test_srvs_dir / "django_srv"
         self.flask_srv_dir = self.test_srvs_dir / "flask_srv"

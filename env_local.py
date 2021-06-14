@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional, Tuple  # noqa: F401
 
 from envo import (  # noqa: F401
     Plugin,
-    Raw,
     VirtualEnv,
     boot_code,
     command,
@@ -45,6 +44,10 @@ class StickybeakLocalEnv(UserEnv):  # type: ignore
         verbose_run = True
 
     # Declare your variables here
+
+    class Environ(UserEnv.Environ):
+        pass
+    e: Environ
 
     def __init__(self) -> None:
         # Define your variables here

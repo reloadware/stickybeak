@@ -7,7 +7,6 @@ from envo import (  # noqa: F401
     logger,
     command,
     context,
-    Raw,
     run,
     precmd,
     onstdout,
@@ -43,7 +42,9 @@ class StickybeakCiEnv(UserEnv):  # type: ignore
         ignore_files: List[str] = []
         verbose_run = True
 
-    # Declare your variables here
+    class Environ(UserEnv.Environ):
+        pass
+    e: Environ
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)

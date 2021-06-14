@@ -94,6 +94,7 @@ def get_requirements(venv_path: Optional[Path] = None) -> Dict[str, Requirement]
         paths=paths, skip=["pip", "pkg-resources", "setuptools", "packaging"], local_only=False,
             include_editables=False
     ):
+        # Skip -e installs?
         if isinstance(r, EggInfoDistribution):
             continue
 

@@ -45,7 +45,7 @@ class StickybeakCiEnv(ParentEnv):
 
     @p.command
     def publish(self) -> None:
-        run(f"poetry publish --username {self.e.pypi_username} --password {self.e.pypi_password}", verbose=False)
+        run(f'poetry publish --username "{self.e.pypi_username}" --password "{self.e.pypi_password}"', verbose=False)
 
     @p.command
     def rstcheck(self) -> None:

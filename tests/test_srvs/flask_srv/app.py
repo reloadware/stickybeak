@@ -3,17 +3,9 @@ from pathlib import Path
 
 from flask import Flask
 
-import stickybeak
+from stickybeak.flask_view import setup
 
 os.environ["TEST_ENV"] = "TEST_ENV_VALUE"
-stickybeak_port = int(os.environ["STICKYBEAK_PORT"])
-timeout = os.environ.get("STICKYBEAK_TIMEOUT")
-timeout = float(timeout) if timeout else None
-
-stickybeak.Server(project_root=Path(os.getcwd()), port=stickybeak_port, timeout=timeout).run()
-
 
 app = Flask(__name__)
-
-if __name__ == "__main__":
-    app.run()
+setup(app, endpoint="sb", project_dir=Path(__file__).parent)

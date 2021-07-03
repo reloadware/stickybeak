@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "stickybeak"
-version = "0.6.1"
+version = "0.7.0"
 description = "Package that makes e2e tests easy."
 authors = ["Damian Krystkiewicz <damian.krystkiewicz@gmail.com>"]
 classifiers = [
@@ -15,28 +15,32 @@ homepage = "https://github.com/dkrystki/stickybeak"
 
 [tool.poetry.dependencies]
 dataclasses = { version = ">=0.7,<0.9", python = "~3.6" }
-python = ">=3.6.1, <4.0"
+python = ">=3.6.2, <4.0"
 requests = "^2.24.0"
 virtualenv = "^20.0.31"
 django = "*"
 dill = "^0.3.3"
 rhei = "^0.5.2"
+typing-extensions = "^3.10.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.0.1"
 pytest-cov = "^2.10.0"
 pytest-mock = "^3.2.0"
 flake8 = "^3.8.3"
-mypy = "0.770"
+mypy = "^0"
 flake8-import-order = "^0.18.1"
-isort = "^5.3.2"
-black = "^19.10b0"
+isort = "*"
+black = "*"
 toml = "^0.10.1"
 furl = "^2.1.0"
 pytest-rerunfailures = "^9.1.1"
 pytest-lazy-fixture = "^0.6.3"
 humanize = "3.5.0"
 rhei = "^0.5.2"
+Jinja2 = "^3.0.1"
+django-stubs = "^1.8.0"
+types-requests = "^2.25.0"
 
 [tool.black]
 skip_gitignore = "True"
@@ -45,7 +49,7 @@ line-length = 120
 exclude = '''
 (
     \.venv
-    | stickybeak/_priv/pip
+    | stickybeak/vendored
 )
 '''
 
@@ -60,7 +64,7 @@ include_trailing_comma = "True"
 force_sort_within_sections = "True"
 forced_separate = "True"
 line_length = 120
-skip = [".venv", "stickybeak/_priv/pip"]
+skip = [".venv", "stickybeak/vendored"]
 
 [build-system]
 requires = ["poetry>=0.12"]

@@ -1,25 +1,30 @@
+from contextlib import closing
+from dataclasses import dataclass
 import json
 import os
-import signal
-import subprocess
 from pathlib import Path
+import signal
+import socket
+import subprocess
+from typing import Dict, Optional
 from unittest.mock import patch
 
 import dill as pickle
-from typing import Dict
-
-from dataclasses import dataclass
 from requests import Response
 
-from stickybeak import  Injector
-from stickybeak._priv import handle_requests
+from stickybeak import Injector, handle_requests
+from tests.test_srvs import app_srv
+
+DJANGO_PORT = 8005
+FLASK_PORT = 8006
+APP_PORT = 8007
 
 
 @dataclass
 class MockInjector(Injector):
     def __post_init__(self) -> None:
-        self.post_mock = patch("stickybeak._priv.utils.Session.post")
-        self.get_mock = patch("stickybeak._priv.utils.Session.get")
+        self.post_mock = patch("stickybeak.utils.Session.post")
+        self.get_mock = patch("stickybeak.utils.Session.get")
 
     def mock(self, blocking: bool = True) -> None:
         self.post_mock.start().side_effect = self._mock_post
@@ -41,22 +46,26 @@ class MockInjector(Injector):
 
         response = Response()
 
-        data: Dict[str, Dict[str, str]] = handle_requests.get_data(django_srv.root)
+        data: Dict[str, Dict[str, str]] = handle_requests.get_server_data(django_srv.root)
         response._content = json.dumps(data)
 
         response.status_code = 200
         return response
 
 
-def server_factory(timeout: float, stickybea_port: int) -> subprocess.Popen:
-    from tests.test_srvs import flask_srv
+def find_free_port():
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(("", 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
 
+
+def app_server_factory(stickybeak_port: int, timeout: Optional[float] = None) -> subprocess.Popen:
     environ = os.environ.copy()
-    environ["STICKYBEAK_PORT"] = str(stickybea_port)
-    environ["STICKYBEAK_TIMEOUT"] = str(timeout)
-    p = subprocess.Popen(
-        [".venv/bin/flask", "run", "--no-reload", f"--host=localhost", f"--port=8238"], env=environ,
-        cwd=str(flask_srv.root),
-    )
+    environ["STICKYBEAK_PORT"] = str(stickybeak_port)
 
+    if timeout:
+        environ["STICKYBEAK_TIMEOUT"] = str(timeout)
+
+    p = subprocess.Popen([".venv/bin/python", "app.py"], env=environ, cwd=str(app_srv.root))
     return p

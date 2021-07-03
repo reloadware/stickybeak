@@ -1,29 +1,28 @@
+from pickle import PicklingError
+import random
 import shutil
 import signal
-from pickle import PicklingError
 from time import sleep
 from typing import Any, Dict
 
-import stickybeak
-from stickybeak._priv import pip
-import pytest
-from pytest import raises
+from pytest import lazy_fixture, mark, raises, skip
 
-from stickybeak import Injector, InjectorException
 from tests import utils
-from stickybeak._priv import utils as stickybeak_utils
+from tests.facade import ConnectionError, Injector, InjectorException, pip, stickybeak_utils
 
 
-@pytest.mark.parametrize("injector", [pytest.lazy_fixture("django_injector"),
-                                      pytest.lazy_fixture("flask_injector")])
+@mark.parametrize(
+    "injector", [lazy_fixture("app_injector"), lazy_fixture("django_injector"), lazy_fixture("flask_injector")]
+)
 class TestDownloadingRequirements:
     def test_installs_missing_package(self, injector):
         if isinstance(injector, utils.MockInjector):
-            pytest.skip()
+            skip()
 
         @injector.function
         def get_humanize_version() -> str:
             import humanize
+
             return humanize.__version__
 
         for p in stickybeak_utils.get_site_packages_dir_from_venv(injector.stickybeak_dir / ".venv").glob("loguru*"):
@@ -35,11 +34,12 @@ class TestDownloadingRequirements:
 
     def test_installs_upgrade(self, injector):
         if isinstance(injector, utils.MockInjector):
-            pytest.skip()
+            skip()
 
         @injector.function
         def get_humanize_version() -> str:
             import humanize
+
             return humanize.__version__
 
         for p in stickybeak_utils.get_site_packages_dir_from_venv(injector.stickybeak_dir / ".venv").glob("humanize*"):
@@ -59,16 +59,22 @@ class TestDownloadingRequirements:
         assert ver == "3.5.0"
 
 
-@pytest.mark.parametrize("injector", [pytest.lazy_fixture("mock_injector"),
-                                      pytest.lazy_fixture("django_injector"),
-                                      pytest.lazy_fixture("flask_injector")])
+@mark.parametrize(
+    "injector",
+    [
+        lazy_fixture("mock_injector"),
+        lazy_fixture("app_injector"),
+        lazy_fixture("django_injector"),
+        lazy_fixture("flask_injector"),
+    ],
+)
 class TestInjectors:
     def test_syntax_errors(self, injector):
         @injector.function
         def fun() -> Any:
             exec("a=1////2")
 
-        with pytest.raises(SyntaxError):
+        with raises(SyntaxError):
             ret = fun()
             assert ret == 0.5
 
@@ -111,7 +117,8 @@ class TestInjectors:
         @injector.function
         def fun(date) -> int:
             from datetime import datetime
-            ret = datetime(date.year+1, date.month, date.day, date.hour, date.minute, date.second)
+
+            ret = datetime(date.year + 1, date.month, date.day, date.hour, date.minute, date.second)
             return ret
 
         from datetime import datetime
@@ -145,7 +152,7 @@ class TestInjectors:
             a = 1 / 0
             return a
 
-        with pytest.raises(ZeroDivisionError):
+        with raises(ZeroDivisionError):
             fun()
 
     def test_interface_in_class(self, injector):
@@ -207,7 +214,7 @@ class TestInjectors:
 
 
 def test_timeout():
-    injector = utils.Injector(host="http://localhost", name="flask", download_deps=False)
+    injector = utils.Injector(host=f"http://localhost", name="app", download_deps=False)
 
     @injector.klass
     class Klass:
@@ -215,15 +222,15 @@ def test_timeout():
         def fun(cls) -> str:
             return "So fun"
 
-    stickybeak_port = 8520
-    process = utils.server_factory(timeout=3, stickybea_port=stickybeak_port)
+    port = utils.find_free_port()
+    process = utils.app_server_factory(timeout=3, stickybeak_port=port)
 
-    injector.prepare(port=stickybeak_port)
+    injector.prepare(port=port)
     injector.connect()
 
     assert Klass.fun() == "So fun"
     sleep(3)
-    with raises(stickybeak.ConnectionError):
+    with raises(ConnectionError):
         assert Klass.fun() == "So fun"
 
     process.send_signal(signal.SIGINT)
@@ -264,5 +271,5 @@ def test_not_connected(django_injector_not_connected):
     def fun() -> Any:
         return "cake"
 
-    with pytest.raises(InjectorException):
+    with raises(InjectorException):
         fun()

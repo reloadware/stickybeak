@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
     - master
+    types: [closed]
 
 jobs:
   test:
@@ -46,7 +47,7 @@ jobs:
   {%- endraw %}
     runs-on: ubuntu-latest
     needs: [test, check-black]
-    if: github.event.pull_request.merged
+    if: github.event.pull_request.merged == true
     steps:
       {{- bootstrap_code | indent(6, True) }}
       - name: Bootstrap repo

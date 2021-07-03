@@ -305,6 +305,8 @@ class DjangoInjector(BaseInjector):
     django_settings_module: str
 
     def _before_execute(self) -> None:
+        if not self.download_deps:
+            return
         modules = list(sys.modules.keys())[:]
         for m in modules:
             if "django" in m:

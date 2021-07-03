@@ -254,18 +254,6 @@ def test_accessing_fields(django_injector):
     assert ret.endpoint == "test_endpoint"
 
 
-def test_no_download(django_injector_no_download):
-    @django_injector_no_download.function
-    def fun() -> int:
-        a = 5
-        b = 3
-        c = a + b
-        return c
-
-    with raises(ModuleNotFoundError):
-        ret: int = fun()
-
-
 def test_not_connected(django_injector_not_connected):
     @django_injector_not_connected.function
     def fun() -> Any:

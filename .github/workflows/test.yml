@@ -1,0 +1,103 @@
+name: "test"
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_version: [3.6, 3.7, 3.8, 3.9]
+    steps:      
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+      - uses: gerbal/always-cache@v1.0.3
+        id: pip-cache
+        with:
+          path: ~/.cache/pip
+          key: pip-cache-21.1.3-1.1.7-0.9.12
+          restore-keys: pip-cache-
+      - run: pip install pip==21.1.3
+      - run: pip install poetry==1.1.7
+      - run: pip install envo==0.9.12
+      - uses: actions/cache@v2
+        id: root-venv-cache
+        with:
+          path: |
+            .venv
+            tests/test_srvs/app_srv/.venv
+            tests/test_srvs/django_srv/.venv
+            tests/test_srvs/flask_srv/.venv
+          key: root-venv-v3-${{ hashFiles('poetry.lock') }}
+          restore-keys: root-venv-v3-
+      - name: Bootstrap repo
+        run: envo ci run p.bootstrap
+      - name: test
+        run: envo ci run p.test
+
+  check-black:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - uses: gerbal/always-cache@v1.0.3
+        id: check-black-pip-cache
+        with:
+          path: ~/.cache/pip
+          key: check-black-pip-cache-21.6b0
+          restore-keys: check-black-pip-cache-
+      - run: pip install black==21.6b0
+      - run: black --check .
+
+  publish:
+    env:
+      PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+      PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+    runs-on: ubuntu-latest
+    needs: [test, check-black]
+    if: github.event.pull_request.merged && github.ref == 'refs/heads/master'
+    steps:      
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+      - uses: gerbal/always-cache@v1.0.3
+        id: pip-cache
+        with:
+          path: ~/.cache/pip
+          key: pip-cache-21.1.3-1.1.7-0.9.12
+          restore-keys: pip-cache-
+      - run: pip install pip==21.1.3
+      - run: pip install poetry==1.1.7
+      - run: pip install envo==0.9.12
+      - uses: actions/cache@v2
+        id: root-venv-cache
+        with:
+          path: |
+            .venv
+            tests/test_srvs/app_srv/.venv
+            tests/test_srvs/django_srv/.venv
+            tests/test_srvs/flask_srv/.venv
+          key: root-venv-v3-${{ hashFiles('poetry.lock') }}
+          restore-keys: root-venv-v3-
+      - name: Bootstrap repo
+        run: envo ci run "p.bootstrap(test_apps=False)"
+      - name: Generate version
+        run: envo ci run p.generate_version
+      - name: Build
+        run: envo ci run p.build
+      - name: Publish
+        run: envo ci run p.publish

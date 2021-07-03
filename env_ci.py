@@ -1,94 +1,76 @@
-import os
-from typing import List, Dict, Any, Optional, Tuple  # noqa: F401
-
 from pathlib import Path
 
-from envo import (  # noqa: F401
-    logger,
-    command,
-    context,
-    run,
-    precmd,
-    onstdout,
-    onstderr,
-    postcmd,
-    onload,
-    oncreate,
-    onunload,
-    ondestroy,
-    boot_code,
-    Plugin,
-    VirtualEnv,
-    UserEnv,
-    Namespace
-)
+root = Path(__file__).parent.absolute()
 
-# Declare your command namespaces here
-# like this:
-# my_namespace = command(namespace="my_namespace")
-sb = Namespace("sb")
+import envo  # noqa: F401
+
+envo.add_source_roots([root])
+
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple  # noqa: F401
+
+from envo import Env, Namespace, logger, run, var
+
+from env_comm import StickybeakCommEnv as ParentEnv
+
+p = Namespace("p")
 
 
-class StickybeakCiEnv(UserEnv):  # type: ignore
-    class Meta(UserEnv.Meta):  # type: ignore
-        root = Path(__file__).parent.absolute()
+class StickybeakCiEnv(ParentEnv):
+    class Meta(ParentEnv.Meta):
         stage: str = "ci"
-        emoji: str = "🧪"
-        parents: List[str] = ["env_comm.py"]
-        name: str = "stickybeak"
-        version: str = "0.1.0"
-        plugins: List[Plugin] = []
-        watch_files: List[str] = []
-        ignore_files: List[str] = []
-        verbose_run = True
+        emoji: str = "⚙"
+        load_env_vars = True
 
-    class Environ(UserEnv.Environ):
-        pass
+    class Environ(ParentEnv.Environ):
+        pypi_username: Optional[str] = var(raw=True)
+        pypi_password: Optional[str] = var(raw=True)
+
     e: Environ
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        # Define your variables here
+    def init(self) -> None:
+        super().init()
 
-    @sb.command
-    def bootstrap(self) -> None:
-        run("mkdir -p workspace")
-        super().bootstrap()
+    @p.command
+    def bootstrap(self, test_apps=True) -> None:
+        super().bootstrap(test_apps)
 
-    @sb.command
+    @p.command
     def test(self) -> None:
-        logger.info("Running tests", print_msg=True)
-        run("pytest --reruns 3 -v tests --cov-report xml:workspace/cov.xml --cov=stickybeak ./workspace")
+        run("pytest --reruns 2 -v tests")
 
-    @sb.command
+    @p.command
     def build(self) -> None:
         run("poetry build")
 
-    @sb.command
+    @p.command
     def publish(self) -> None:
-        run("poetry publish --username $PYPI_USERNAME --password $PYPI_PASSWORD")
+        run(f"poetry publish --username {self.e.pypi_username} --password {self.e.pypi_password}", verbose=False)
 
-    @sb.command
+    @p.command
     def rstcheck(self) -> None:
         pass
         # run("rstcheck README.rst | tee ./workspace/rstcheck.txt")
 
-    @sb.command
+    @p.command
     def flake(self) -> None:
         pass
         # run("flake8 . | tee ./workspace/flake8.txt")
 
-    @sb.command
+    @p.command
     def check_black(self) -> None:
-        pass
-        # run("black --check . | tee ./workspace/black.txt")
+        run("black --check .")
 
-    @sb.command
+    @p.command
+    def check_isort(self) -> None:
+        run("black --check .")
+
+    @p.command
     def mypy(self) -> None:
         pass
-        # run("mypy . | tee ./workspace/mypy.txt")
+        run("mypy .")
 
-    @sb.command
+    @p.command
     def generate_version(self) -> None:
         import toml
 
@@ -100,17 +82,5 @@ class StickybeakCiEnv(UserEnv):  # type: ignore
 
         version_file.write_text(f'__version__ = "{version}"\n')
 
-    @sb.command
-    def upload_codecov(self) -> None:
-        run(
-            """
-            curl -s https://codecov.io/bash | bash -s -- \
-            -t "${CODECOV_TOKEN}" \
-            -n "${CIRCLE_BUILD_NUM}" \
-            -f "./workspace/cov.xml" \
-            -Z
-            """
-        )
 
-
-Env = StickybeakCiEnv
+ThisEnv = StickybeakCiEnv

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "stickybeak"
-version = "0.7.2"
+version = "0.7.3"
 description = "Package that makes e2e tests easy."
 authors = ["Damian Krystkiewicz <damian.krystkiewicz@gmail.com>"]
 classifiers = [
@@ -16,12 +16,10 @@ homepage = "https://github.com/dkrystki/stickybeak"
 [tool.poetry.dependencies]
 dataclasses = { version = ">=0.7,<0.9", python = "~3.6" }
 python = ">=3.6.2, <4.0"
-requests = "^2.24.0"
-virtualenv = "^20.0.31"
-django = "*"
-dill = "^0.3.3"
-rhei = "^0.5.2"
-typing-extensions = "^3.10.0"
+requests = "*"
+virtualenv = "*"
+dill = "*"
+typing-extensions = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.0.1"

@@ -10,7 +10,7 @@ python-versions = "*"
 name = "asgiref"
 version = "3.4.1"
 description = "ASGI specs, helper code, and adapters"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -145,7 +145,7 @@ python-versions = "*"
 name = "django"
 version = "3.2.5"
 description = "A high-level Python Web framework that encourages rapid development and clean, pragmatic design."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -511,7 +511,7 @@ pytest = ">=5.0"
 name = "pytz"
 version = "2021.1"
 description = "World timezone definitions, modern and historical"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 
@@ -545,7 +545,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)", "win-inet-pton"]
 name = "rhei"
 version = "0.5.2"
 description = "Package that implements simple stopwatch class."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">= 3.6"
 
@@ -561,7 +561,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 name = "sqlparse"
 version = "0.4.1"
 description = "A non-validating SQL parser."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.5"
 
@@ -645,7 +645,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.6.2, <4.0"
-content-hash = "1be60d1d13a61a01ca34af4511cbb38c72b2e5f4dd9edde0b269c2ca05bc8feb"
+content-hash = "0b3fc83635a2bc120cef8618f677f9fe2996c3cfda378718a2547caf229198e4"
 
 [metadata.files]
 appdirs = [

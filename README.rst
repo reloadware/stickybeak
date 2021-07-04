@@ -6,17 +6,21 @@ Stickybeak - Life changing E2E tests solution
 .. image:: https://badge.fury.io/py/stickybeak.svg
     :target: https://pypi.org/project/stickybeak/
 
-.. image:: https://circleci.com/gh/dkrystki/stickybeak.svg?style=svg
-    :target: https://circleci.com/gh/dkrystki/stickybeak
-
-.. image:: https://codecov.io/gh/dkrystki/stickybeak/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/dkrystki/stickybeak
+.. image:: https://github.com/reloadware/stickybeak/actions/workflows/test.yml/badge.svg
+    :target: https://github.com/reloadware/stickybeak/actions/workflows/test.yml/badge.svg
 
 .. image:: https://img.shields.io/badge/python-3.6-blue.svg
     :target: https://www.python.org/downloads/release/python-360/
 
 .. image:: https://img.shields.io/badge/python-3.7-blue.svg
     :target: https://www.python.org/downloads/release/python-370/
+
+.. image:: https://img.shields.io/badge/python-3.8-blue.svg
+    :target: https://www.python.org/downloads/release/python-380/
+
+.. image:: https://img.shields.io/badge/python-3.9-blue.svg
+    :target: https://www.python.org/downloads/release/python-390/
+
 
 Stickybeak is an end to end test helper library that saves lots of testing endpoints and boilerplate code.
 Usually end to end testing is hard to debug when something goes wrong since modern microservice architecture can be

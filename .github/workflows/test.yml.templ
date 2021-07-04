@@ -21,6 +21,15 @@ jobs:
       - name: test
         run: envo ci run p.test
 
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      {{- bootstrap_code | indent(6, True) }}
+      - name: Bootstrap repo
+        run: envo ci run p.bootstrap
+      - name: Mypy
+        run: envo ci run p.mypy
+
   check-black:
     runs-on: ubuntu-latest
     steps:
@@ -45,7 +54,7 @@ jobs:
       PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
   {%- endraw %}
     runs-on: ubuntu-latest
-    needs: [test, check-black]
+    needs: [test, check-black, mypy]
     if: github.ref == 'refs/heads/master'
     steps:
       {{- bootstrap_code | indent(6, True) }}

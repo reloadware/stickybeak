@@ -964,7 +964,7 @@ def getsourcelines(object):
     else:
         return getblock(lines[lnum:]), lnum + 1
 
-def getsource(object):
+def getsource(object) -> str:
     """Return the text of the source code for an object.
 
     The argument may be a module, class, method, function, traceback, frame,

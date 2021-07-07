@@ -62,9 +62,7 @@ class BaseInjector:
 
     def _init(self) -> None:
         self._client = Client(self.host)
-        project_dir: Path = Path(".").absolute()
-        project_hash = hashlib.sha1(str(project_dir).encode("utf-8")).hexdigest()[0:8]
-        self.stickybeak_dir = Path.home() / ".stickybeak" / Path(f"{self.name}-{project_hash}")
+        self.stickybeak_dir = Path.home() / ".stickybeak" / Path(f"{self.name}")
 
     def connect(self, blocking: bool = True) -> None:
         def target() -> None:

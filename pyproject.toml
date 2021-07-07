@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "stickybeak"
-version = "0.7.6"
+version = "0.7.7"
 description = "Package that makes e2e tests easy."
 authors = ["Damian Krystkiewicz <damian.krystkiewicz@gmail.com>"]
 classifiers = [

@@ -1,6 +1,7 @@
 import glob
 import os
 from pathlib import Path
+import traceback
 from typing import Any, Dict, List, Optional, Union
 
 import dill as pickle
@@ -16,6 +17,8 @@ SERVER_DATA_ENDPOINT = "data"
 
 class InjectData(TypedDict):
     source: str  # source code of function/class
+    filename: str  # filename of original injection function/class definition
+    offset: int  # injection code line offset
     call: str  # call statement
     args: List[Any]
     kwargs: Dict[str, Any]
@@ -34,46 +37,38 @@ class ServerData(TypedDict):
     envs: Dict[str, str]  # env name -> env value
 
 
-def call_function(source: str, call: str, args: List[Any], kwargs: Dict[str, Any]) -> bytes:
+def call_function(data: InjectData) -> bytes:
     """Function where the injected code will be executed.
     Helps to avoid local variable conflicts."""
 
     ret: bytes
     results: Dict[str, Any] = {}
 
+    offset = "\n" * (data["offset"] - 2)
+
     code = f"""
-{source}
-try:
-    __return = {call}(*__args__, **__kwargs__)
-except Exception as __exc:
-    __exception = __exc
+{offset}
+{data["source"]}
+__return = {data["call"]}(*__args__, **__kwargs__)
     """
 
     context = sandbox.__dict__
-    context["__args__"] = args
-    context["__kwargs__"] = kwargs
+    context["__args__"] = data["args"]
+    context["__kwargs__"] = data["kwargs"]
 
     try:
+        code = compile(code, filename=data["filename"], mode="exec")
         exec(code, context, results)
-        if "__return" in results:
-            ret = pickle.dumps(results["__return"])
-        elif "__exception" in results:
-            ret = pickle.dumps(results["__exception"])
-        else:
-            ret = pickle.dumps(results)
+        ret = pickle.dumps(results["__return"])
     except Exception as exc:
-        ret = pickle.dumps(exc)
+        e = exc.__class__(traceback.format_exc())
+        ret = pickle.dumps(e)
 
     return ret
 
 
 def inject(data: InjectData) -> bytes:
-    source: str = data["source"]
-    call: str = data["call"]
-    args: List[Any] = data["args"]
-    kwargs: Dict[str, Any] = data["kwargs"]
-
-    result: bytes = call_function(source=source, call=call, args=args, kwargs=kwargs)
+    result: bytes = call_function(data)
 
     return result
 

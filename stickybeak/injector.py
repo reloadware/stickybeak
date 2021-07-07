@@ -11,6 +11,7 @@ import sys
 import textwrap
 from threading import Thread
 from time import sleep
+import traceback
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
@@ -150,7 +151,7 @@ class BaseInjector:
         if not self.connected:
             raise InjectorException("Injector not connected! Run connect() first.")
 
-    def _run_remote_fun(self, source: str, call: str, args: Any, kwargs: Any) -> object:
+    def _run_remote_fun(self, source: str, filename: str, offset: int, call: str, args: Any, kwargs: Any) -> object:
         """Execute code.
         Returns:
             Dictionary containing all local variables.
@@ -178,7 +179,7 @@ class BaseInjector:
             sys.path = [str(site_packages), *sys.path]
 
         self._before_execute()
-        data = InjectData(source=source, call=call, args=list(args), kwargs=kwargs)
+        data = InjectData(source=source, filename=filename, offset=offset, call=call, args=list(args), kwargs=kwargs)
         pickled_data = pickle.dumps(data)
         try:
             content: bytes = self._client.post(INJECT_ENDPOINT, data=pickled_data).content
@@ -221,7 +222,11 @@ class BaseInjector:
         self._raise_if_not_connected()
 
         source: str = self._get_fun_src(fun)
-        ret = self._run_remote_fun(source, call=fun.__name__, args=args, kwargs=kwargs)
+        offset = inspect.getsourcelines(fun)[1]
+        filename = inspect.getsourcefile(fun)
+        ret = self._run_remote_fun(
+            source, filename=filename, offset=offset, call=fun.__name__, args=args, kwargs=kwargs
+        )
         return ret
 
     def run_klass_fun(
@@ -234,7 +239,11 @@ class BaseInjector:
         self._raise_if_not_connected()
 
         source: str = textwrap.dedent(inspect.getsource(klass))
-        ret = self._run_remote_fun(source, call=f"{klass.__name__}.{fun.__name__}", args=args, kwargs=kwargs)
+        filename = inspect.getsourcefile(klass)
+        offset = inspect.getsourcelines(klass)[1]
+        ret = self._run_remote_fun(
+            source, filename=filename, offset=offset, call=f"{klass.__name__}.{fun.__name__}", args=args, kwargs=kwargs
+        )
         return ret
 
     def klass(self, cls: type) -> type:

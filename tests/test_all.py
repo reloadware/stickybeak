@@ -3,6 +3,7 @@ import random
 import shutil
 import signal
 from time import sleep
+import traceback
 from typing import Any, Dict
 
 from pytest import lazy_fixture, mark, raises, skip
@@ -152,8 +153,10 @@ class TestInjectors:
             a = 1 / 0
             return a
 
-        with raises(ZeroDivisionError):
+        with raises(ZeroDivisionError) as e:
             fun()
+
+        assert "line 153" in str(e.value)
 
     def test_interface_in_class(self, injector):
         @injector.klass

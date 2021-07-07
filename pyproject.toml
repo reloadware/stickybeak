@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "stickybeak"
-version = "0.7.3"
+version = "0.7.4"
 description = "Package that makes e2e tests easy."
 authors = ["Damian Krystkiewicz <damian.krystkiewicz@gmail.com>"]
 classifiers = [
@@ -11,7 +11,7 @@ classifiers = [
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: Implementation :: CPython"
 ]
-homepage = "https://github.com/dkrystki/stickybeak"
+homepage = "https://github.com/reloadware/stickybeak"
 
 [tool.poetry.dependencies]
 dataclasses = { version = ">=0.7,<0.9", python = "~3.6" }

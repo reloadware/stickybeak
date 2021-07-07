@@ -53,6 +53,8 @@ from collections import namedtuple, OrderedDict
 
 # Create constants for the compiler flags in Include/code.h
 # We try to get them from dis to avoid duplication
+from typing import List
+
 mod_dict = globals()
 for k, v in dis.COMPILER_FLAG_NAMES.items():
     mod_dict["CO_" + v] = k
@@ -677,7 +679,7 @@ def getmodulename(path):
             return fname[:neglen]
     return None
 
-def getsourcefile(object):
+def getsourcefile(object) -> str:
     """Return the filename that can be used to locate an object's source.
     Return None if no way can be identified to get the source.
     """
@@ -943,7 +945,7 @@ def getblock(lines):
         pass
     return lines[:blockfinder.last]
 
-def getsourcelines(object):
+def getsourcelines(object) -> [List[str], int]:
     """Return a list of source lines and starting line number for an object.
 
     The argument may be a module, class, method, function, traceback, frame,

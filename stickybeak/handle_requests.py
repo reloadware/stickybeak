@@ -61,8 +61,8 @@ __return = {data["call"]}(*__args__, **__kwargs__)
         exec(code, context, results)
         ret = pickle.dumps(results["__return"])
     except Exception as exc:
-        e = exc.__class__(traceback.format_exc())
-        ret = pickle.dumps(e)
+        exc.__traceback_str__ = traceback.format_exc()  # type: ignore
+        ret = pickle.dumps(exc)
 
     return ret
 

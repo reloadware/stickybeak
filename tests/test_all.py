@@ -147,7 +147,7 @@ class TestInjectors:
 
         assert fun() == "TEST_ENV_VALUE"
 
-    def test_exceptions(self, injector):
+    def test_exceptions(self, injector, capsys):
         @injector.function
         def fun() -> float:
             a = 1 / 0
@@ -156,7 +156,7 @@ class TestInjectors:
         with raises(ZeroDivisionError) as e:
             fun()
 
-        assert "line 153" in str(e.value)
+        assert "line 153" in capsys.readouterr().err
 
     def test_interface_in_class(self, injector):
         @injector.klass

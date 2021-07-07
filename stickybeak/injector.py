@@ -197,6 +197,7 @@ class BaseInjector:
             sys.modules.pop(m)
 
         if isinstance(ret, Exception):
+            sys.stderr.write(ret.__traceback_str__)  # type: ignore
             raise ret
 
         return ret

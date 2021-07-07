@@ -44,7 +44,7 @@ def call_function(data: InjectData) -> bytes:
     ret: bytes
     results: Dict[str, Any] = {}
 
-    offset = "\n" * (data["offset"] - 2)
+    offset = "\n" * (data["offset"] - 3)
 
     code = f"""
 {offset}
@@ -57,8 +57,8 @@ __return = {data["call"]}(*__args__, **__kwargs__)
     context["__kwargs__"] = data["kwargs"]
 
     try:
-        code = compile(code, filename=data["filename"], mode="exec")
-        exec(code, context, results)
+        code_obj = compile(code, filename=data["filename"], mode="exec")
+        exec(code_obj, context, results)
         ret = pickle.dumps(results["__return"])
     except Exception as exc:
         exc.__traceback_str__ = traceback.format_exc()  # type: ignore

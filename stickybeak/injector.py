@@ -205,25 +205,26 @@ class BaseInjector:
     def _before_execute(self) -> None:
         pass
 
-    def _get_fun_src(self, fun: Callable[[], None]) -> str:
+    def _get_fun_src(self, fun: Callable[[], None]) -> Tuple[str, int]:
         code: str = inspect.getsource(fun)
+        offset = inspect.getsourcelines(fun)[1]
 
         code_lines: List[str] = code.splitlines(True)
 
         if "@" in code_lines[0]:
             code_lines.pop(0)
+            offset += 1
 
         code = "".join(code_lines)
 
         # remove indent that's left
         code = textwrap.dedent(code)
-        return code
+        return code, offset
 
     def run_fun(self, fun: Callable, *args: Any, **kwargs: Any) -> object:
         self._raise_if_not_connected()
 
-        source: str = self._get_fun_src(fun)
-        offset = inspect.getsourcelines(fun)[1]
+        source, offset = self._get_fun_src(fun)
         filename = inspect.getsourcefile(fun)
         ret = self._run_remote_fun(
             source, filename=filename, offset=offset, call=fun.__name__, args=args, kwargs=kwargs

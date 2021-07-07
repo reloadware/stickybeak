@@ -215,6 +215,19 @@ class TestInjectors:
         assert first_instance.fun(test_str="value") == "value_added"
         assert second_instance.fun(test_str="value") == "value_added"
 
+    def test_class_exceptions(self, injector, capsys):
+        @injector.klass
+        class Klass4:
+            @classmethod
+            def fun(cls) -> float:
+                a = 1 / 0
+                return a
+
+        with raises(ZeroDivisionError) as e:
+            Klass4.fun()
+
+        assert "line 223" in capsys.readouterr().err
+
 
 def test_timeout():
     injector = utils.Injector(host=f"http://localhost", name="app", download_deps=False)

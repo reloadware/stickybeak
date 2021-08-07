@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "stickybeak"
-version = "0.7.7"
+version = "0.7.8"
 description = "Package that makes e2e tests easy."
 authors = ["Damian Krystkiewicz <damian.krystkiewicz@gmail.com>"]
 classifiers = [
@@ -39,6 +39,7 @@ rhei = "^0.5.2"
 Jinja2 = "^3.0.1"
 django-stubs = "^1.8.0"
 types-requests = "^2.25.0"
+pytest-xdist = "^2.3.0"
 
 [tool.black]
 skip_gitignore = "True"

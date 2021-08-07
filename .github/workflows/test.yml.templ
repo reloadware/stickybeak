@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python_version: {{ python_versions }}
+        python_version: {{ ctx.python_versions }}
     steps:
       {{- bootstrap_code | indent(6, True) }}
       - name: Bootstrap repo
@@ -42,9 +42,9 @@ jobs:
         id: check-black-pip-cache
         with:
           path: ~/.cache/pip
-          key: check-black-pip-cache-{{ black_ver }}
+          key: check-black-pip-cache-{{ ctx.black_ver }}
           restore-keys: check-black-pip-cache-
-      - run: pip install black=={{ black_ver }}
+      - run: pip install black=={{ ctx.black_ver }}
       - run: black --check .
 
   publish:

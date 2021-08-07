@@ -73,9 +73,6 @@ class BaseInjector:
                 # ########## Collect remote code
                 sources: Dict[str, str] = self._server_data["source"]
 
-                if sources == {}:
-                    raise RuntimeError("Couldn't find any source files (*.py).")
-
                 for path, source in sources.items():
                     abs_path: Path = self.stickybeak_dir / Path(path)
 

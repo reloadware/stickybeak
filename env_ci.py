@@ -2,14 +2,14 @@ from pathlib import Path
 
 root = Path(__file__).parent.absolute()
 
-import envo  # noqa: F401
+import envo
 
 envo.add_source_roots([root])
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple  # noqa: F401
+from typing import Any, Dict, List, Optional, Tuple
 
-from envo import Env, Namespace, logger, run, var
+from envo import Env, Namespace, logger, run, env_var
 
 from env_comm import StickybeakCommEnv as ParentEnv
 
@@ -23,8 +23,8 @@ class StickybeakCiEnv(ParentEnv):
         load_env_vars = True
 
     class Environ(ParentEnv.Environ):
-        pypi_username: Optional[str] = var(raw=True)
-        pypi_password: Optional[str] = var(raw=True)
+        pypi_username: Optional[str] = env_var(raw=True)
+        pypi_password: Optional[str] = env_var(raw=True)
 
     e: Environ
 

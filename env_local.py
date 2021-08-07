@@ -4,16 +4,15 @@ from textwrap import dedent
 
 root = Path(__file__).parent.absolute()
 
-import envo  # noqa: F401
+import envo
 
 envo.add_source_roots([root])
 
 import shutil
-from typing import Any, Dict, List, Optional, Tuple  # noqa: F401
+from typing import Any, Dict, List, Optional, Tuple
 
 from envo import Env, Namespace, inject, run
 
-localci = Namespace(name="localci")
 p = Namespace("p")
 
 from env_comm import StickybeakCommEnv as ParentEnv
@@ -62,11 +61,11 @@ class StickybeakLocalEnv(ParentEnv):  # type: ignore
           id: pip-cache
           with:
             path: ~/.cache/pip
-            key: pip-cache-{{ pip_ver }}-{{ poetry_ver }}-{{ envo_ver }}
+            key: pip-cache-{{ ctx.pip_ver }}-{{ ctx.poetry_ver }}-{{ ctx.envo_ver }}
             restore-keys: pip-cache-
-        - run: pip install pip=={{ pip_ver }}
-        - run: pip install poetry=={{ poetry_ver }}
-        - run: pip install envo=={{ envo_ver }}
+        - run: pip install pip=={{ ctx.pip_ver }}
+        - run: pip install poetry=={{ ctx.poetry_ver }}
+        - run: pip install envo=={{ ctx.envo_ver }}
         - uses: actions/cache@v2
           id: root-venv-cache
           with:
@@ -82,17 +81,10 @@ class StickybeakLocalEnv(ParentEnv):  # type: ignore
         """
         )
 
-        ctx = {
-            "pip_ver": self.pip_ver,
-            "poetry_ver": self.poetry_ver,
-            "envo_ver": self.envo_ver,
-        }
-
-        bootstrap_code = Template(bootstrap_code, undefined=StrictUndefined).render(**ctx)
+        bootstrap_code = Template(bootstrap_code, undefined=StrictUndefined).render({"ctx": self.ctx})
 
         ctx = {
-            "black_ver": self.black_ver,
-            "python_versions": [3.6, 3.7, 3.8, 3.9],
+            "ctx": self.ctx,
             "bootstrap_code": bootstrap_code,
         }
 
@@ -109,16 +101,16 @@ class StickybeakLocalEnv(ParentEnv):  # type: ignore
     @p.command
     def flake(self) -> None:
         self.black()
-        run("flake8 .")
+        inject("flake8 .")
 
     @p.command
     def black(self) -> None:
         self.isort()
-        run("black .")
+        inject("black .")
 
     @p.command
     def isort(self) -> None:
-        run("isort .")
+        inject("isort .")
 
     @p.command
     def mypy(self) -> None:
@@ -131,11 +123,7 @@ class StickybeakLocalEnv(ParentEnv):  # type: ignore
 
     @p.command
     def test(self) -> None:
-        run("pytest -v tests")
-
-    @localci.command
-    def __flake(self) -> None:
-        run("circleci local execute --job flake8")
+        inject("pytest -v tests")
 
 
 ThisEnv = StickybeakLocalEnv

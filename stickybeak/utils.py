@@ -3,10 +3,11 @@ import json
 from math import ceil
 from pathlib import Path
 import re
+import sys
 from typing import Any, Dict
 from urllib.parse import urljoin
 
-from requests import Session
+from requests import HTTPError, Session
 from requests.adapters import HTTPAdapter, Response
 from urllib3 import Retry
 
@@ -38,7 +39,14 @@ class Client:
     def get(self, url: str) -> Dict[str, Any]:
         joined_url = urljoin(self.base_url, url)
         response: Response = self._retry_session.get(joined_url)
-        response.raise_for_status()
+
+        try:
+            response.raise_for_status()
+        except HTTPError:
+            sys.stderr.write(response.text)
+            sys.stderr.flush()
+            raise
+
         return json.loads(response.content or "null")
 
     def post(self, url: str, data: bytes) -> Response:

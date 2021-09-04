@@ -20,12 +20,16 @@ class Server(Thread):
     project_root: Path
     port: int
     timeout: Optional[float]
+    collect_source: bool
 
-    def __init__(self, project_root: Path, port: int, timeout: Optional[float] = None) -> None:
+    def __init__(
+        self, project_root: Optional[Path], port: int, timeout: Optional[float] = None, collect_source: bool = False
+    ) -> None:
         super().__init__()
 
         self.project_root = project_root
         self.port = port
+        self.collect_source = collect_source
         self.timeout = timeout
 
         class Handler(BaseHTTPRequestHandler):
@@ -43,14 +47,14 @@ class Server(Thread):
                 response.write(handle_requests.inject(data))
                 self.wfile.write(response.getvalue())
 
-            def do_GET(self) -> None:
-                self.send_response(200)
-                self.send_header("content-type", "application/json")
-                self.end_headers()
+            def do_GET(self2) -> None:
+                self2.send_response(200)
+                self2.send_header("content-type", "application/json")
+                self2.end_headers()
 
-                data = handle_requests.get_server_data(self.project_root)
+                data = handle_requests.get_server_data(self2.project_root)
                 response_data = json.dumps(data)
-                self.wfile.write(response_data.encode("utf-8"))
+                self2.wfile.write(response_data.encode("utf-8"))
 
             def handle_http(self) -> None:
                 return

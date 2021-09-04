@@ -9,7 +9,9 @@ stickybeak_port = int(os.environ["STICKYBEAK_PORT"])
 timeout = os.environ.get("STICKYBEAK_TIMEOUT")
 timeout = float(timeout) if timeout else None
 
-stickybeak.Server(project_root=Path(__file__).parent, port=stickybeak_port, timeout=timeout).run()
+project_root = os.environ.get("STICKYBEAK_PROJECTROOT", None)
+
+stickybeak.Server(project_root=project_root, port=stickybeak_port, timeout=timeout).run()
 
 
 while True:

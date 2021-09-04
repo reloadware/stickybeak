@@ -9,7 +9,7 @@ envo.add_source_roots([root])
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-from envo import Env, Namespace, VirtualEnv, run, ctx_var
+from envo import Env, Namespace, VirtualEnv, ctx_var, run
 
 # Declare your command namespaces here
 # like this:

@@ -2,6 +2,7 @@ from contextlib import closing
 from dataclasses import dataclass
 import json
 import os
+from pathlib import Path
 import socket
 import subprocess
 from typing import Dict, Optional
@@ -58,9 +59,13 @@ def find_free_port():
         return s.getsockname()[1]
 
 
-def app_server_factory(stickybeak_port: int, timeout: Optional[float] = None) -> subprocess.Popen:
+def app_server_factory(
+    stickybeak_port: int, timeout: Optional[float] = None, project_root: Optional[Path] = app_srv.root
+) -> subprocess.Popen:
     environ = os.environ.copy()
     environ["STICKYBEAK_PORT"] = str(stickybeak_port)
+    if project_root:
+        environ["STICKYBEAK_PROJECTROOT"] = str(project_root)
 
     if timeout:
         environ["STICKYBEAK_TIMEOUT"] = str(timeout)

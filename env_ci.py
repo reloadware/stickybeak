@@ -9,7 +9,7 @@ envo.add_source_roots([root])
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from envo import Env, Namespace, logger, run, env_var
+from envo import Env, Namespace, env_var, logger, run
 
 from env_comm import StickybeakCommEnv as ParentEnv
 

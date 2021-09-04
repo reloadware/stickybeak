@@ -119,10 +119,15 @@ def get_envs() -> Dict[str, str]:
     return envs
 
 
-def get_server_data(project_dir: Union[str, Path]) -> ServerData:
-    project_dir = Path(project_dir)
+def get_server_data(project_dir: Union[str, Path, None]) -> ServerData:
+    if project_dir:
+        project_dir = Path(project_dir)
+        source = get_source(project_dir)
+    else:
+        source = {}
+
     data = ServerData(
-        source=get_source(project_dir),
+        source=source,
         requirements=get_requirements(),
         envs=get_envs(),
     )

@@ -253,6 +253,26 @@ def test_timeout():
     process.kill()
 
 
+def test_no_project_root():
+    injector = utils.Injector(host=f"http://localhost", name="app", download_deps=False)
+
+    @injector.klass
+    class Klass:
+        @classmethod
+        def fun(cls) -> str:
+            return "So fun"
+
+    port = utils.find_free_port()
+    process = utils.app_server_factory(timeout=3, stickybeak_port=port, project_root=None)
+
+    injector.prepare(port=port)
+    injector.connect()
+
+    assert Klass.fun() == "So fun"
+    process.send_signal(signal.SIGINT)
+    process.kill()
+
+
 def test_accessing_fields(django_injector):
     @django_injector.function
     def fun():

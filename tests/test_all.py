@@ -7,6 +7,7 @@ import traceback
 from typing import Any, Dict
 
 from pytest import lazy_fixture, mark, raises, skip
+from rhei import Stopwatch
 
 from tests import utils
 from tests.facade import ConnectionError, Injector, InjectorException, pip, stickybeak_utils
@@ -156,7 +157,7 @@ class TestInjectors:
         with raises(ZeroDivisionError) as e:
             fun()
 
-        assert "line 153" in capsys.readouterr().err
+        assert "line 154" in capsys.readouterr().err
 
     def test_interface_in_class(self, injector):
         @injector.klass
@@ -226,10 +227,10 @@ class TestInjectors:
         with raises(ZeroDivisionError) as e:
             Klass4.fun()
 
-        assert "line 223" in capsys.readouterr().err
+        assert "line 224" in capsys.readouterr().err
 
 
-def test_timeout():
+def test_server_timeout():
     injector = utils.Injector(host=f"http://localhost", name="app", download_deps=False)
 
     @injector.klass
@@ -248,6 +249,24 @@ def test_timeout():
     sleep(3)
     with raises(ConnectionError):
         assert Klass.fun() == "So fun"
+
+    process.send_signal(signal.SIGINT)
+    process.kill()
+
+
+def test_client_timeout():
+    injector = utils.Injector(host=f"http://localhost", name="app", download_deps=False)
+
+    port = utils.find_free_port()
+    process = utils.app_server_factory(timeout=3, stickybeak_port=port, start_delay=4)
+
+    sw = Stopwatch()
+    injector.prepare(port=port)
+    sw.start()
+    injector.connect(timeout=5)
+    sw.pause()
+
+    assert sw.value <= 5.0 and sw.value >= 4.0
 
     process.send_signal(signal.SIGINT)
     process.kill()

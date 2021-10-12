@@ -27,8 +27,8 @@ class StickybeakCommEnv(Env, VirtualEnv):
 
     class Ctx(Env.Ctx, VirtualEnv.Ctx):
         pip_ver: str = ctx_var("21.1.3")
-        poetry_ver: str = ctx_var("1.1.7")
-        envo_ver: str = ctx_var("0.9.27")
+        poetry_ver: str = ctx_var("1.1.11")
+        envo_ver: str = ctx_var("1.0.6")
         black_ver: str = ctx_var("21.6b0")
         python_versions: List[float] = ctx_var(default_factory=lambda: [3.6, 3.7, 3.8, 3.9])
 

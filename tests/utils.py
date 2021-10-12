@@ -60,7 +60,10 @@ def find_free_port():
 
 
 def app_server_factory(
-    stickybeak_port: int, timeout: Optional[float] = None, project_root: Optional[Path] = app_srv.root
+    stickybeak_port: int,
+    timeout: Optional[float] = None,
+    project_root: Optional[Path] = app_srv.root,
+    start_delay: Optional[float] = None,
 ) -> subprocess.Popen:
     environ = os.environ.copy()
     environ["STICKYBEAK_PORT"] = str(stickybeak_port)
@@ -69,6 +72,9 @@ def app_server_factory(
 
     if timeout:
         environ["STICKYBEAK_TIMEOUT"] = str(timeout)
+
+    if start_delay:
+        environ["STICKYBEAK_STARTDELAY"] = str(start_delay)
 
     p = subprocess.Popen([".venv/bin/python", "app.py"], env=environ, cwd=str(app_srv.root))
     return p

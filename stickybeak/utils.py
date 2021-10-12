@@ -4,7 +4,8 @@ from math import ceil
 from pathlib import Path
 import re
 import sys
-from typing import Any, Dict
+from time import sleep
+from typing import Any, Dict, Optional
 from urllib.parse import urljoin
 
 from requests import HTTPError, Session
@@ -12,13 +13,9 @@ from requests.adapters import HTTPAdapter, Response
 from urllib3 import Retry
 
 
-class SubSecondRetry(Retry):
-    """Handle floats like: Retry-After: 0.223"""
-
-    def parse_retry_after(self, retry_after: str) -> float:
-        if re.match(r"^\s*[0-9]+\.*[0-9]+\s*$", retry_after):
-            return ceil(float(retry_after))
-        return super().parse_retry_after(retry_after)
+class FastRetry(Retry):
+    def sleep(self, response: Any = None) -> None:
+        sleep(0.1)
 
 
 @dataclass
@@ -28,7 +25,7 @@ class Client:
     def __post_init__(self) -> None:
         self._retry_session = Session()
 
-        retry = SubSecondRetry(total=6, read=6, connect=6, status=6, backoff_factor=0.1)
+        retry = FastRetry(total=20)
         self._retry_session.mount("http://", HTTPAdapter(max_retries=retry))
         self._retry_session.mount("https://", HTTPAdapter(max_retries=retry))
 
@@ -36,9 +33,18 @@ class Client:
         self._session.mount("http://", HTTPAdapter())
         self._session.mount("https://", HTTPAdapter())
 
-    def get(self, url: str) -> Dict[str, Any]:
+    def get(self, url: str, timeout: Optional[float] = None) -> Dict[str, Any]:
         joined_url = urljoin(self.base_url, url)
-        response: Response = self._retry_session.get(joined_url)
+        if timeout:
+            session = Session()
+            tries = int(timeout // 0.1)
+
+            retry = FastRetry(total=tries)
+            session.mount("http://", HTTPAdapter(max_retries=retry))
+            session.mount("https://", HTTPAdapter(max_retries=retry))
+            response = session.get(joined_url)
+        else:
+            response = self._retry_session.get(joined_url)
 
         try:
             response.raise_for_status()

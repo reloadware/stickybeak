@@ -64,11 +64,11 @@ class BaseInjector:
         self._client = Client(self.host)
         self.stickybeak_dir = Path.home() / ".stickybeak" / Path(f"{self.name}")
 
-    def connect(self, blocking: bool = True) -> None:
+    def connect(self, blocking: bool = True, timeout: float = 5.0) -> None:
         def target() -> None:
             try:
                 # ########## Get data
-                self._server_data = self._client.get(SERVER_DATA_ENDPOINT)
+                self._server_data = self._client.get(SERVER_DATA_ENDPOINT, timeout=timeout)
 
                 # ########## Collect remote code
                 sources: Dict[str, str] = self._server_data["source"]

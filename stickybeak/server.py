@@ -23,7 +23,11 @@ class Server(Thread):
     collect_source: bool
 
     def __init__(
-        self, project_root: Optional[Path], port: int, timeout: Optional[float] = None, collect_source: bool = False
+        self,
+        port: int,
+        project_root: Optional[Path] = None,
+        timeout: Optional[float] = None,
+        collect_source: bool = False,
     ) -> None:
         super().__init__()
 

@@ -235,12 +235,15 @@ class BaseInjector:
     ) -> object:
         self._raise_if_not_connected()
 
-        source = self._get_class_source(klass)
-
         filename = inspect.getsourcefile(klass)
         offset = inspect.getsourcelines(klass)[1]
         ret = self._run_remote_fun(
-            source, filename=filename, offset=offset, call=f"{klass.__name__}.{fun.__name__}", args=args, kwargs=kwargs
+            klass.__source__,  # type: ignore
+            filename=filename,
+            offset=offset,
+            call=f"{klass.__name__}.{fun.__name__}",
+            args=args,
+            kwargs=kwargs,
         )
         return ret
 
@@ -267,6 +270,7 @@ class BaseInjector:
         cls_cpy = sandbox[cls.__name__]
 
         cls_cpy._injector = self  # type: ignore
+        cls_cpy.__source__ = source
         methods: List[str] = [a for a in dir(cls_cpy) if not a.startswith("__") and callable(getattr(cls_cpy, a))]
 
         for m in methods:

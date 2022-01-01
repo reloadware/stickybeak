@@ -235,7 +235,8 @@ class BaseInjector:
     ) -> object:
         self._raise_if_not_connected()
 
-        source: str = textwrap.dedent(inspect.getsource(klass))
+        source = self._get_class_source(klass)
+
         filename = inspect.getsourcefile(klass)
         offset = inspect.getsourcelines(klass)[1]
         ret = self._run_remote_fun(
@@ -243,12 +244,22 @@ class BaseInjector:
         )
         return ret
 
+    def _get_class_source(self, klass: type) -> str:
+        mro = reversed(klass.mro()[:-1])
+        sources = []
+
+        for c in mro:
+            sources.append(textwrap.dedent(inspect.getsource(c)) + "\n")
+
+        ret = "".join(sources)
+        return ret
+
     def klass(self, cls: type) -> type:
         # re execute class to get copy
         # this way original class can yield multiple injected classes
         # first_instance = injector1.klass(Klass)
         # second_instance = injector2.klass(Klass)
-        source: str = textwrap.dedent(inspect.getsource(cls))
+        source = self._get_class_source(cls)
 
         definition_module = sys.modules[cls.__module__]
         sandbox: Dict[str, Any] = {}

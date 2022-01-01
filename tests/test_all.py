@@ -2,6 +2,7 @@ from pickle import PicklingError
 import random
 import shutil
 import signal
+from textwrap import dedent
 from time import sleep
 import traceback
 from typing import Any, Dict
@@ -150,14 +151,14 @@ class TestInjectors:
 
     def test_exceptions(self, injector, capsys):
         @injector.function
-        def fun() -> float:
+        def raises_exception_fun() -> float:
             a = 1 / 0
             return a
 
         with raises(ZeroDivisionError) as e:
-            fun()
+            raises_exception_fun()
 
-        assert "line 154" in capsys.readouterr().err
+        assert f"line {self.test_exceptions.__code__.co_firstlineno + 3}" in capsys.readouterr().err
 
     def test_interface_in_class(self, injector):
         @injector.klass
@@ -181,6 +182,32 @@ class TestInjectors:
         assert Interface.fun(1) == 4
         assert Interface.fun2(2) == 9
         assert Interface.fun3() == 20
+
+    def test_inheritance(self, injector):
+        class BaseCakeshop:
+            @classmethod
+            def bake(cls) -> str:
+                ret = "\nBaking base cake\n"
+                return ret
+
+        @injector.klass
+        class Cakeshop(BaseCakeshop):
+            @classmethod
+            def bake(cls) -> str:
+                ret = super().bake()
+                ret += "Baking extra cake"
+                return ret
+
+            @classmethod
+            def open(cls) -> str:
+                return "Open"
+
+        assert Cakeshop.bake() == dedent(
+            """
+        Baking base cake
+        Baking extra cake"""
+        )
+        assert Cakeshop.open() == "Open"
 
     def test_return_object(self, injector):
         @injector.function
@@ -227,7 +254,7 @@ class TestInjectors:
         with raises(ZeroDivisionError) as e:
             Klass4.fun()
 
-        assert "line 224" in capsys.readouterr().err
+        assert f"line {self.test_class_exceptions.__code__.co_firstlineno+5}" in capsys.readouterr().err
 
 
 def test_server_timeout():

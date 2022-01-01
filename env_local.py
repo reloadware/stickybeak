@@ -114,7 +114,7 @@ class StickybeakLocalEnv(ParentEnv):  # type: ignore
 
     @p.command
     def mypy(self) -> None:
-        inject("mypy .")
+        inject("mypy stickybeak")
 
     @p.command
     def ci(self) -> None:

@@ -14,10 +14,6 @@ from requests import Response
 from stickybeak import Injector, handle_requests
 from tests.test_srvs import app_srv
 
-DJANGO_PORT = 8005
-FLASK_PORT = 8006
-APP_PORT = 8007
-
 
 @dataclass
 class MockInjector(Injector):
@@ -52,7 +48,7 @@ class MockInjector(Injector):
         return response
 
 
-def find_free_port():
+def find_free_port() -> int:
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         s.bind(("", 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -78,3 +74,8 @@ def app_server_factory(
 
     p = subprocess.Popen([".venv/bin/python", "app.py"], env=environ, cwd=str(app_srv.root))
     return p
+
+
+DJANGO_PORT = find_free_port()
+FLASK_PORT = find_free_port()
+APP_PORT = find_free_port()

@@ -1,4 +1,6 @@
 import atexit
+import sys
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import BytesIO
 import json
@@ -78,7 +80,7 @@ class Server(Thread):
     def _watchdog(self) -> None:
         assert self.timeout is not None
         sleep(self.timeout)
-        self.exit()
+        os._exit(0)
 
     def exit(self) -> None:
         self.httpd.shutdown()
@@ -87,7 +89,9 @@ class Server(Thread):
         atexit.register(self.exit)
 
         if self.timeout:
-            Thread(target=self._watchdog).start()
+            watchdog_thread = Thread(target=self._watchdog)
+            watchdog_thread.daemon = True
+            watchdog_thread.start()
 
         self.httpd.serve_forever()
         self.httpd.server_close()

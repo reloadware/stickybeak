@@ -16,13 +16,13 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
 import dill as pickle
+import pip
 import requests.exceptions
 
 from stickybeak import utils
 from stickybeak.handle_requests import INJECT_ENDPOINT, SERVER_DATA_ENDPOINT, InjectData, Requirement, get_requirements
 from stickybeak.utils import Client
 from stickybeak.vendored import inspect
-import pip
 
 __all__ = ["InjectorException", "Injector", "DjangoInjector", "FlaskInjector", "ConnectionError"]
 

@@ -1,10 +1,10 @@
 import atexit
-import sys
-import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import BytesIO
 import json
+import os
 from pathlib import Path
+import sys
 from threading import Thread
 from time import sleep
 from typing import Any, Optional

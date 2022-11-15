@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python_version: [3.7, 3.8, 3.9, 3.10, 3.11]
+        python_version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
     steps:      
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -90,7 +90,7 @@ jobs:
           path: ~/.cache/pip
           key: check-black-pip-cache-21.6b0
           restore-keys: check-black-pip-cache-
-      - run: pip install black==21.6b0
+      - run: pip install black==22.10.0
       - run: black --check .
 
   publish:

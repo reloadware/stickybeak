@@ -60,7 +60,7 @@ class StickybeakLocalEnv(ParentEnv):  # type: ignore
         self.ci_out = self.meta.root / ".github/workflows/test.yml"
 
     @command
-    def render_ci(self) -> None:
+    def p__render_ci(self) -> None:
         from jinja2 import StrictUndefined, Template
 
         bootstrap_code = dedent(

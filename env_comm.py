@@ -9,13 +9,16 @@ envo.add_source_roots([root])
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-from envo import Env, VirtualEnv, ctx_var, run, command
+from envo import Env, VirtualEnv, ctx_var, run, command, venv_utils
 
 # Declare your command namespaces here
 # like this:
 
+venv_utils.PredictedVenv(root, ".venv").activate()
 
-class StickybeakCommEnv(Env, VirtualEnv):
+
+
+class StickybeakCommEnv(Env):
     class Meta(Env.Meta):
         root = root
         name: str = "stickybeak"
@@ -25,6 +28,8 @@ class StickybeakCommEnv(Env, VirtualEnv):
         ...
 
     class Ctx(Env.Ctx, VirtualEnv.Ctx):
+        pip_ver: str = ctx_var("24.2")
+        poetry_ver: str = ctx_var("1.8.3")
         envo_ver: str = ctx_var("1.0.6")
         black_ver: str = ctx_var("21.6b0")
         python_versions: List[float] = ctx_var(default_factory=lambda: [3.9, 3.10, 3.11, 3.12])

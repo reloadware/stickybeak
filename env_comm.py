@@ -46,13 +46,13 @@ class StickybeakCommEnv(Env):
 
     def init(self) -> None:
         super().init()
-        self.e.pythonpath = f"{self.meta.root}"
-
         self.test_dir = self.meta.root / "tests"
         self.test_srvs_dir = self.test_dir / "test_srvs"
         self.django_srv_dir = self.test_srvs_dir / "django_srv"
         self.flask_srv_dir = self.test_srvs_dir / "flask_srv"
         self.app_srv_dir = self.test_srvs_dir / "app_srv"
+
+        self.e.pythonpath = [f"{self.meta.root}", self.django_srv_dir]
 
     @command
     def p__clean(self) -> None:

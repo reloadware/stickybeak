@@ -31,7 +31,7 @@ class StickybeakCiEnv(ParentEnv):
 
     @command
     def p__bootstrap(self, test_apps=True) -> None:
-        super().bootstrap(test_apps)
+        super().p__bootstrap(test_apps)
 
     @command
     def p__test(self) -> None:

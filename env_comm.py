@@ -32,7 +32,7 @@ class StickybeakCommEnv(Env):
         poetry_ver: str = ctx_var("1.8.3")
         envo_ver: str = ctx_var("1.0.6")
         black_ver: str = ctx_var("21.6b0")
-        python_versions: List[float] = ctx_var(default_factory=lambda: [3.9, 3.10, 3.11, 3.12])
+        python_versions: List[float] = ctx_var(default_factory=lambda: ["3.9", "3.10", "3.11", "3.12"])
 
     e: Environ
     ctx: Ctx

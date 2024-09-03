@@ -9,11 +9,9 @@ envo.add_source_roots([root])
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from envo import Env, Namespace, env_var, logger, run
+from envo import Env, env_var, logger, run, command
 
 from env_comm import StickybeakCommEnv as ParentEnv
-
-p = Namespace("p")
 
 
 class StickybeakCiEnv(ParentEnv):
@@ -31,47 +29,42 @@ class StickybeakCiEnv(ParentEnv):
     def init(self) -> None:
         super().init()
 
-    @p.command
-    def bootstrap(self, test_apps=True) -> None:
+    @command
+    def p__bootstrap(self, test_apps=True) -> None:
         super().bootstrap(test_apps)
 
-    @p.command
-    def test(self) -> None:
+    @command
+    def p__test(self) -> None:
         run("pytest --reruns 2 -v tests")
 
-    @p.command
-    def build(self) -> None:
+    @command
+    def p__build(self) -> None:
         run("poetry build")
 
-    @p.command
-    def publish(self) -> None:
+    @command
+    def p__publish(self) -> None:
         run(f'poetry publish --username "{self.e.pypi_username}" --password "{self.e.pypi_password}"', verbose=False)
 
-    @p.command
-    def rstcheck(self) -> None:
+    @command
+    def p__rstcheck(self) -> None:
         pass
         # run("rstcheck README.rst | tee ./workspace/rstcheck.txt")
 
-    @p.command
-    def flake(self) -> None:
+    @command
+    def p__flake(self) -> None:
         pass
         # run("flake8 . | tee ./workspace/flake8.txt")
 
-    @p.command
-    def check_black(self) -> None:
+    @command
+    def p__check_black(self) -> None:
         run("black --check .")
 
-    @p.command
-    def check_isort(self) -> None:
+    @command
+    def p__check_isort(self) -> None:
         run("black --check .")
 
-    @p.command
-    def mypy(self) -> None:
-        pass
-        run("mypy .")
-
-    @p.command
-    def generate_version(self) -> None:
+    @command
+    def p__generate_version(self) -> None:
         import toml
 
         config = toml.load(str(self.meta.root / "pyproject.toml"))

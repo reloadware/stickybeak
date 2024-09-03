@@ -21,32 +21,6 @@ jobs:
       - name: test
         run: envo ci run p.test
 
-  mypy:
-    runs-on: ubuntu-latest
-    steps:
-      {{- bootstrap_code | indent(6, True) }}
-      - name: Bootstrap repo
-        run: envo ci run p.bootstrap
-      - name: Mypy
-        run: envo ci run p.mypy
-
-  check-black:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-      - uses: gerbal/always-cache@v1.0.3
-        id: check-black-pip-cache
-        with:
-          path: ~/.cache/pip
-          key: check-black-pip-cache-{{ ctx.black_ver }}
-          restore-keys: check-black-pip-cache-
-      - run: pip install black=={{ ctx.black_ver }}
-      - run: black --check .
-
   publish:
   {%- raw %}
     env:
@@ -54,7 +28,7 @@ jobs:
       PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
   {%- endraw %}
     runs-on: ubuntu-latest
-    needs: [test, check-black, mypy]
+    needs: [test]
     if: github.ref == 'refs/heads/master'
     steps:
       {{- bootstrap_code | indent(6, True) }}

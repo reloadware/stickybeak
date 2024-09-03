@@ -9,11 +9,10 @@ envo.add_source_roots([root])
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-from envo import Env, Namespace, VirtualEnv, ctx_var, run
+from envo import Env, VirtualEnv, ctx_var, run, command
 
 # Declare your command namespaces here
 # like this:
-sb = Namespace("sb")
 
 
 class StickybeakCommEnv(Env, VirtualEnv):
@@ -26,11 +25,9 @@ class StickybeakCommEnv(Env, VirtualEnv):
         ...
 
     class Ctx(Env.Ctx, VirtualEnv.Ctx):
-        pip_ver: str = ctx_var("21.1.3")
-        poetry_ver: str = ctx_var("1.1.11")
         envo_ver: str = ctx_var("1.0.6")
         black_ver: str = ctx_var("21.6b0")
-        python_versions: List[float] = ctx_var(default_factory=lambda: [3.6, 3.7, 3.8, 3.9])
+        python_versions: List[float] = ctx_var(default_factory=lambda: [3.9, 3.10, 3.11, 3.12])
 
     e: Environ
     ctx: Ctx
@@ -52,17 +49,15 @@ class StickybeakCommEnv(Env, VirtualEnv):
         self.flask_srv_dir = self.test_srvs_dir / "flask_srv"
         self.app_srv_dir = self.test_srvs_dir / "app_srv"
 
-    @sb.command
-    def clean(self) -> None:
+    @command
+    def p__clean(self) -> None:
         run("rm **/*/__pycache__ -rf")
         run("rm **/*/.eggs -rf")
         run("rm **/*/*.egg-info -rf")
         run("rm **/*/*.egg-info -rf")
 
-    @sb.command
-    def bootstrap(self, test_apps=True) -> None:
-        run(f"pip install pip=={self.ctx.pip_ver}")
-        run(f"pip install poetry=={self.ctx.poetry_ver}")
+    @command
+    def p__bootstrap(self, test_apps=True) -> None:
         run("poetry config virtualenvs.create true")
         run("poetry config virtualenvs.in-project true")
         run("poetry install --no-root")

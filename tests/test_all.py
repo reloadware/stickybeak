@@ -1,78 +1,32 @@
-from pickle import PicklingError
-import random
-import shutil
 import signal
 from textwrap import dedent
 from time import sleep
-import traceback
-from typing import Any, Dict
+from typing import Any
 
-from pytest import lazy_fixture, mark, raises, skip
+import pytest
+from pytest import raises, mark
 from rhei import Stopwatch
 
 from tests import utils
-from tests.facade import ConnectionError, Injector, InjectorException, pip, stickybeak_utils
+from tests.facade import ConnectionError, InjectorException
 
 
-@mark.parametrize(
-    "injector", [lazy_fixture("app_injector"), lazy_fixture("django_injector"), lazy_fixture("flask_injector")]
-)
-class TestDownloadingRequirements:
-    def test_installs_missing_package(self, injector):
-        if isinstance(injector, utils.MockInjector):
-            skip()
-
-        @injector.function
-        def get_humanize_version() -> str:
-            import humanize
-
-            return humanize.__version__
-
-        for p in stickybeak_utils.get_site_packages_dir_from_venv(injector.stickybeak_dir / ".venv").glob("loguru*"):
-            shutil.rmtree(str(p))
-
-        ver = get_humanize_version()
-
-        assert ver == "3.5.0"
-
-    def test_installs_upgrade(self, injector):
-        if isinstance(injector, utils.MockInjector):
-            skip()
-
-        @injector.function
-        def get_humanize_version() -> str:
-            import humanize
-
-            return humanize.__version__
-
-        for p in stickybeak_utils.get_site_packages_dir_from_venv(injector.stickybeak_dir / ".venv").glob("humanize*"):
-            shutil.rmtree(str(p))
-
-        ret = pip.main(
-            [
-                "install",
-                f"--target={str(stickybeak_utils.get_site_packages_dir_from_venv(injector.stickybeak_dir / '.venv'))}",
-                "humanize==3.4.0",
-            ]
-        )
-        assert ret == 0
-
-        # should upgrade
-        ver = get_humanize_version()
-        assert ver == "3.5.0"
-
-
-@mark.parametrize(
-    "injector",
+injector_fixture = mark.parametrize(
+    "injector_type",
     [
-        lazy_fixture("mock_injector"),
-        lazy_fixture("app_injector"),
-        lazy_fixture("django_injector"),
-        lazy_fixture("flask_injector"),
+        "mock_injector",
+        "app_injector",
+        "django_injector",
+        "flask_injector",
     ],
 )
+
+
 class TestInjectors:
-    def test_syntax_errors(self, injector):
+    @injector_fixture
+    def test_syntax_errors(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         @injector.function
         def fun() -> Any:
             exec("a=1////2")
@@ -81,7 +35,10 @@ class TestInjectors:
             ret = fun()
             assert ret == 0.5
 
-    def test_function(self, injector):
+    @injector_fixture
+    def test_function(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         def fun() -> int:
             a = 5
             b = 3
@@ -91,7 +48,10 @@ class TestInjectors:
         ret: int = injector.run_fun(fun)
         assert ret == 8
 
-    def test_decorator(self, injector):
+    @injector_fixture
+    def test_decorator(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         @injector.function
         def fun() -> int:
             a = 1
@@ -100,14 +60,20 @@ class TestInjectors:
 
         assert fun() == 5
 
-    def test_return_none(self, injector):
+    @injector_fixture
+    def test_return_none(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         @injector.function
         def fun() -> None:
             print("Hello this is a remote server.")
 
         assert fun() is None
 
-    def test_arguments(self, injector):
+    @injector_fixture
+    def test_arguments(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         @injector.function
         def fun(d: int, e: int, x: int) -> int:
             a = 1
@@ -116,7 +82,10 @@ class TestInjectors:
 
         assert fun(5, 6, x=2) == 18
 
-    def test_datetime(self, injector):
+    @injector_fixture
+    def test_datetime(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         @injector.function
         def fun(date) -> int:
             from datetime import datetime
@@ -128,7 +97,10 @@ class TestInjectors:
 
         assert fun(datetime(2020, 1, 1, 12, 0, 0)) == datetime(2021, 1, 1, 12, 0, 0)
 
-    def test_arguments_default(self, injector):
+    @injector_fixture
+    def test_arguments_default(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         @injector.function
         def fun(d: int, e: int, x: int = 2) -> int:
             a = 1
@@ -137,7 +109,10 @@ class TestInjectors:
 
         assert fun(5, 6) == 18
 
-    def test_env_variables(self, injector):
+    @injector_fixture
+    def test_env_variables(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         if isinstance(injector, utils.MockInjector):
             return
 
@@ -149,7 +124,10 @@ class TestInjectors:
 
         assert fun() == "TEST_ENV_VALUE"
 
-    def test_exceptions(self, injector, capsys):
+    @injector_fixture
+    def test_exceptions(self, capsys, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         @injector.function
         def raises_exception_fun() -> float:
             a = 1 / 0
@@ -158,9 +136,12 @@ class TestInjectors:
         with raises(ZeroDivisionError) as e:
             raises_exception_fun()
 
-        assert f"line {self.test_exceptions.__code__.co_firstlineno + 3}" in capsys.readouterr().err
+        assert f"line {self.test_exceptions.__code__.co_firstlineno + 9}" in capsys.readouterr().err
 
-    def test_interface_in_class(self, injector):
+    @injector_fixture
+    def test_interface_in_class(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         @injector.klass
         class Interface:
             @classmethod
@@ -183,7 +164,10 @@ class TestInjectors:
         assert Interface.fun2(2) == 9
         assert Interface.fun3() == 20
 
-    def test_inheritance(self, injector):
+    @injector_fixture
+    def test_inheritance(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         class BaseCakeshop:
             @classmethod
             def bake(cls) -> str:
@@ -209,7 +193,10 @@ class TestInjectors:
         )
         assert Cakeshop.open() == "Open"
 
-    def test_return_object(self, injector):
+    @injector_fixture
+    def test_return_object(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         @injector.function
         def fun() -> float:
             from rhei import Stopwatch
@@ -220,7 +207,10 @@ class TestInjectors:
 
         assert type(fun()).__name__ == "Stopwatch"
 
-    def test_string_passed(self, injector):
+    @injector_fixture
+    def test_string_passed(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         # Bug reproduction
         @injector.klass
         class Klass2:
@@ -231,7 +221,10 @@ class TestInjectors:
         assert Klass2.fun(test_str="value") == "value_added"
         assert Klass2.fun("value") == "value_added"
 
-    def test_multiple_injectors_per_class(self, injector):
+    @injector_fixture
+    def test_multiple_injectors_per_class(self, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         class Klass3:
             @classmethod
             def fun(cls, test_str: str) -> str:
@@ -243,7 +236,10 @@ class TestInjectors:
         assert first_instance.fun(test_str="value") == "value_added"
         assert second_instance.fun(test_str="value") == "value_added"
 
-    def test_class_exceptions(self, injector, capsys):
+    @injector_fixture
+    def test_class_exceptions(self, capsys, injector_type, request):
+        injector = request.getfixturevalue(injector_type)
+
         @injector.klass
         class Klass4:
             @classmethod
@@ -254,11 +250,11 @@ class TestInjectors:
         with raises(ZeroDivisionError) as e:
             Klass4.fun()
 
-        assert f"line {self.test_class_exceptions.__code__.co_firstlineno+5}" in capsys.readouterr().err
+        assert f"line {self.test_class_exceptions.__code__.co_firstlineno+12}" in capsys.readouterr().err
 
 
 def test_server_timeout():
-    injector = utils.Injector(host=f"http://localhost", name="app", download_deps=False)
+    injector = utils.Injector(host=f"http://localhost", name="app")
 
     @injector.klass
     class Klass:
@@ -282,7 +278,7 @@ def test_server_timeout():
 
 
 def test_client_timeout():
-    injector = utils.Injector(host=f"http://localhost", name="app", download_deps=False)
+    injector = utils.Injector(host=f"http://localhost", name="app")
 
     port = utils.find_free_port()
     process = utils.app_server_factory(timeout=3, stickybeak_port=port, start_delay=4)
@@ -300,7 +296,7 @@ def test_client_timeout():
 
 
 def test_no_project_root():
-    injector = utils.Injector(host=f"http://localhost", name="app", download_deps=False)
+    injector = utils.Injector(host=f"http://localhost", name="app")
 
     @injector.klass
     class Klass:

@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 from textwrap import dedent
+import os
 
 root = Path(__file__).parent.absolute()
 
@@ -11,9 +12,7 @@ envo.add_source_roots([root])
 import shutil
 from typing import Any, Dict, List, Optional, Tuple
 
-from envo import Env, Namespace, inject, run
-
-p = Namespace("p")
+from envo import Env, inject, run, command
 
 from env_comm import StickybeakCommEnv as ParentEnv
 
@@ -23,6 +22,22 @@ class Job:
     name: str
     command: str
     python_versions: List[float] = field(default_factory=lambda: [3.9])
+
+
+def bootstrap_version(version: str) -> None:
+    shutil.rmtree(".venv", ignore_errors=True)
+    path_tmp = os.environ["PATH"]
+    os.environ["PATH"] = f"{Path.home()}/.pyenv/versions/{version}/bin/:{os.environ['PATH']}"
+
+    try:
+        run(f"poetry config virtualenvs.create false")
+        run(f"poetry config virtualenvs.in-project true")
+
+        run(f"python -m venv .venv")
+
+        run(f"poetry install")
+    finally:
+        os.environ["PATH"] = path_tmp
 
 
 class StickybeakLocalEnv(ParentEnv):  # type: ignore
@@ -44,7 +59,7 @@ class StickybeakLocalEnv(ParentEnv):  # type: ignore
         self.ci_template = self.meta.root / ".github/workflows/test.yml.templ"
         self.ci_out = self.meta.root / ".github/workflows/test.yml"
 
-    @p.command
+    @command
     def render_ci(self) -> None:
         from jinja2 import StrictUndefined, Template
 
@@ -91,38 +106,38 @@ class StickybeakLocalEnv(ParentEnv):  # type: ignore
         templ = Template(self.ci_template.read_text(), undefined=StrictUndefined)
         self.ci_out.write_text(templ.render(**ctx))
 
-    @p.command
-    def bootstrap(self) -> None:
+    @command
+    def p__bootstrap(self) -> None:
         shutil.rmtree(".venv", ignore_errors=True)
         shutil.rmtree(self.django_srv_dir / ".venv", ignore_errors=True)
         shutil.rmtree(self.flask_srv_dir / ".venv", ignore_errors=True)
-        super().bootstrap()
+        super().p__bootstrap()
 
-    @p.command
-    def flake(self) -> None:
+    @command
+    def p__flake(self) -> None:
         self.black()
         inject("flake8 .")
 
-    @p.command
-    def black(self) -> None:
+    @command
+    def p__black(self) -> None:
         self.isort()
         inject("black .")
 
-    @p.command
-    def isort(self) -> None:
+    @command
+    def p__isort(self) -> None:
         inject("isort .")
 
-    @p.command
-    def mypy(self) -> None:
+    @command
+    def p__mypy(self) -> None:
         inject("mypy stickybeak")
 
-    @p.command
-    def ci(self) -> None:
+    @command
+    def p__ci(self) -> None:
         self.flake()
         self.mypy()
 
-    @p.command
-    def test(self) -> None:
+    @command
+    def p__test(self) -> None:
         inject("pytest -v tests")
 
 

@@ -2,14 +2,11 @@ import glob
 import os
 from pathlib import Path
 import traceback
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, TypedDict
 
 import dill as pickle
-from typing_extensions import TypedDict
 
-from stickybeak import sandbox, utils
-from stickybeak.vendored.pip._internal.operations import freeze  # type: ignore
-from stickybeak.vendored.pip._internal.utils.misc import get_installed_distributions
+from stickybeak import sandbox
 
 INJECT_ENDPOINT = "inject"
 SERVER_DATA_ENDPOINT = "data"
@@ -24,16 +21,8 @@ class InjectData(TypedDict):
     kwargs: Dict[str, Any]
 
 
-class Requirement(TypedDict):
-    project_name: str
-    egg_info: str
-    key: str
-    version: str
-
-
 class ServerData(TypedDict):
     source: Dict[str, str]  # file -> source
-    requirements: Dict[str, Requirement]  # requirement name -> Requirement
     envs: Dict[str, str]  # env name -> env value
 
 
@@ -87,29 +76,6 @@ def get_source(project_dir: Path) -> Dict[str, str]:
     return source_code
 
 
-def get_requirements(venv_path: Optional[Path] = None) -> Dict[str, Requirement]:
-    paths: Optional[List[str]] = None
-    if venv_path:
-        site_packages = utils.get_site_packages_dir_from_venv(venv_path)
-        paths = [str(site_packages)]
-
-    cleared_reqs = {}
-
-    from stickybeak.vendored.pip._vendor.pkg_resources import EggInfoDistribution
-
-    for r in get_installed_distributions(
-        paths=paths, skip=["pip", "pkg-resources", "setuptools", "packaging"], local_only=False, include_editables=False
-    ):
-        # Skip -e installs?
-        if isinstance(r, EggInfoDistribution):
-            continue
-
-        req = Requirement(project_name=r.project_name, key=r.key, egg_info=r.egg_info, version=r.version)
-        cleared_reqs[r.project_name] = req
-
-    return cleared_reqs
-
-
 def get_envs() -> Dict[str, str]:
     envs: Dict[str, str] = dict()
 
@@ -128,7 +94,6 @@ def get_server_data(project_dir: Union[str, Path, None]) -> ServerData:
 
     data = ServerData(
         source=source,
-        requirements=get_requirements(),
         envs=get_envs(),
     )
     return data

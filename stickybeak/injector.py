@@ -1,26 +1,18 @@
 from contextlib import closing
 from dataclasses import dataclass, field
-import hashlib
 import os
 from pathlib import Path
-import re
-import shutil
 import socket
-import subprocess
 import sys
 import textwrap
 from threading import Thread
 from time import sleep
-import traceback
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from urllib.parse import urljoin, urlparse
 
 import dill as pickle
-import pip
 import requests.exceptions
 
-from stickybeak import utils
-from stickybeak.handle_requests import INJECT_ENDPOINT, SERVER_DATA_ENDPOINT, InjectData, Requirement, get_requirements
+from stickybeak.handle_requests import INJECT_ENDPOINT, SERVER_DATA_ENDPOINT, InjectData
 from stickybeak.utils import Client
 from stickybeak.vendored import inspect
 
@@ -47,7 +39,6 @@ class BaseInjector:
     name: str  # injector name. Will be used as id in stickybeak_dir
     host: str
     port: int
-    download_deps: bool
     stickybeak_dir: Path = field(init=False)  # directory where remote dependencies and project source is kept
 
     _client: Optional[Client] = field(init=False)
@@ -82,8 +73,6 @@ class BaseInjector:
                     abs_path.write_text(source, "utf-8")
 
                 # ########## collect requirements
-                if self.download_deps:
-                    self._do_download_deps()
 
                 self.connected = True
             except requests.exceptions.ConnectionError as e:
@@ -103,45 +92,6 @@ class BaseInjector:
 
             if waited >= timeout:
                 raise TimeoutError
-
-    def _do_download_deps(self) -> None:
-        venv_dir = (self.stickybeak_dir / ".venv").absolute()
-
-        if not venv_dir.exists():
-            subprocess.check_output([f"virtualenv", f"{venv_dir}"], stderr=subprocess.DEVNULL)
-
-        remote_reqs = self._server_data["requirements"]
-        local_reqs = get_requirements(venv_dir)
-
-        @dataclass
-        class ReqDiff:
-            local: Optional[Requirement]
-            remote: Requirement
-
-        reqs_diff = {}
-        for p, v in remote_reqs.items():
-            remote = remote_reqs[p]
-            local = local_reqs.get(p)
-
-            if not local or remote["version"] != local["version"]:
-                reqs_diff[p] = ReqDiff(local=local, remote=remote)
-
-        if reqs_diff:
-            # delete packages manualy (sometimes pip doesn't downgrade for some reason)
-            site_packages = utils.get_site_packages_dir_from_venv(venv_dir)
-            for p, r in reqs_diff.items():
-                if not r.local:
-                    continue
-                package_dir = site_packages / r.local["key"]
-                shutil.rmtree(package_dir, ignore_errors=True)
-
-                shutil.rmtree(r.local["egg_info"], ignore_errors=True)
-
-            reqs = [f"{p}=={r.remote['version']}" for p, r in reqs_diff.items()]
-            ret = pip.main(["install", f"--target={str(site_packages)}", "--upgrade", *reqs])
-
-            if ret:
-                raise DependencyInstallError(return_code=ret)
 
     def _raise_if_not_connected(self) -> None:
         if not self.connected:
@@ -163,16 +113,6 @@ class BaseInjector:
 
         envs_before: os._Environ = os.environ.copy()  # type: ignore
         os.environ = self._server_data["envs"]  # type: ignore
-
-        if self.download_deps:
-            sys.path = [p for p in sys.path if "site-packages" not in p]
-
-            # remove project dir from sys.path so there's no conflicts
-            sys.path.pop(0)
-            sys.path.insert(0, str(self.stickybeak_dir.absolute()))
-
-            site_packages = utils.get_site_packages_dir_from_venv(self.stickybeak_dir.absolute() / ".venv")
-            sys.path = [str(site_packages), *sys.path]
 
         self._before_execute()
         data = InjectData(source=source, filename=filename, offset=offset, call=call, args=list(args), kwargs=kwargs)
@@ -327,8 +267,6 @@ class DjangoInjector(BaseInjector):
     django_settings_module: str
 
     def _before_execute(self) -> None:
-        if not self.download_deps:
-            return
         modules = list(sys.modules.keys())[:]
         for m in modules:
             if "django" in m:

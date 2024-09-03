@@ -11,7 +11,7 @@ from tests.utils import app_server_factory
 
 @fixture
 def mock_injector():
-    mock_injector = utils.MockInjector(download_deps=False, host="http://local-mock", name="mock")
+    mock_injector = utils.MockInjector(host="http://local-mock", name="mock")
     mock_injector.mock()
     mock_injector.prepare()
     mock_injector.connect()
@@ -27,7 +27,6 @@ def app_injector():
         host=f"http://localhost:{utils.DJANGO_PORT}/sb/",
         django_settings_module="django_srv.settings",
         name="django_srv",
-        download_deps=True,
     )
     injector.connect()
     return injector
@@ -39,7 +38,6 @@ def django_injector():
         host=f"http://localhost:{utils.DJANGO_PORT}/sb/",
         django_settings_module="django_srv.settings",
         name="django_srv",
-        download_deps=True,
     )
     injector.connect()
     return injector
@@ -47,7 +45,7 @@ def django_injector():
 
 @fixture
 def flask_injector():
-    injector = FlaskInjector(host=f"http://localhost:{utils.FLASK_PORT}/sb/", name="flask_srv", download_deps=True)
+    injector = FlaskInjector(host=f"http://localhost:{utils.FLASK_PORT}/sb/", name="flask_srv")
     injector.connect()
     return injector
 
@@ -57,7 +55,6 @@ def django_injector_no_download():
     django_injector_no_download = DjangoInjector(
         host=f"http://localhost:{utils.DJANGO_PORT}/sb/",
         django_settings_module="django_srv.settings",
-        download_deps=False,
         name="django_srv",
     )
     django_injector_no_download.connect()
@@ -70,7 +67,6 @@ def django_injector_not_connected():
     django_injector_no_download = DjangoInjector(
         host=f"http://localhost:{utils.DJANGO_PORT}/sb/",
         django_settings_module="django_srv.settings",
-        download_deps=False,
         name="django_srv",
     )
     return django_injector_no_download
